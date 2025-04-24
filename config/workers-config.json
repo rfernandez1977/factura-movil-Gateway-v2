@@ -1,0 +1,16 @@
+{
+  "workers": {
+    "document_processor": {
+      "count": 5,
+      "queue": "documents:pending",
+      "retry_attempts": 3,
+      "retry_delay_seconds": 10
+    },
+    "status_checker": {
+      "count": 2,
+      "queue": "status:pending",
+      "retry_attempts": 2,
+      "retry_delay_seconds": 5
+    }
+  }
+}
