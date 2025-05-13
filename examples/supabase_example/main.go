@@ -1,4 +1,4 @@
-package main
+package supabaseexample
 
 import (
 	"context"
@@ -13,7 +13,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
+// RunExample ejecuta los ejemplos de Supabase
+func RunExample() {
 	// Cargar archivo .env
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found: %v", err)
