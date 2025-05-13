@@ -66,6 +66,8 @@ type DocumentoAlmacenado struct {
 	Hash        string     `json:"hash" bson:"hash"`
 	Metadata    Metadata   `json:"metadata" bson:"metadata"`
 	Timestamps  Timestamps `json:"timestamps" bson:"timestamps"`
+	Contenido   []byte     `json:"contenido,omitempty" bson:"contenido,omitempty"`
+	CacheInfo   CacheInfo  `json:"-" bson:"-"`
 }
 
 // DocumentoSeguro representa un documento con características de seguridad
@@ -128,6 +130,13 @@ type MetadatosSII struct {
 	FechaRecepcion   time.Time `json:"fecha_recepcion" bson:"fecha_recepcion"`
 	NumeroAtencion   string    `json:"numero_atencion" bson:"numero_atencion"`
 	ObservacionesSII []string  `json:"observaciones_sii" bson:"observaciones_sii"`
+}
+
+// CacheInfo contiene información sobre el caché de un documento
+type CacheInfo struct {
+	CreatedAt  time.Time `json:"created_at"`
+	ExpiresAt  time.Time `json:"expires_at"`
+	LastAccess time.Time `json:"last_access"`
 }
 
 // GetField obtiene el valor de un campo del documento por su nombre

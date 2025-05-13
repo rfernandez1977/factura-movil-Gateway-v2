@@ -1322,13 +1322,23 @@ func (s *EcommerceService) processOrder(ctx context.Context, order map[string]in
 	}
 
 	// Almacenar en caché
-	s.cache.SetDocument(doc.ID.Hex(), &models.DocumentoAlmacenado{
-		ID: doc.ID,
-		Metadata: map[string]interface{}{
-			"order_id": order["id"],
-			"platform": order["platform"],
+	metadata := models.Metadata{
+		Tags: []string{},
+		Atributos: map[string]string{
+			"order_id": fmt.Sprintf("%v", order["id"]),
+			"platform": fmt.Sprintf("%v", order["platform"]),
 		},
+	}
+
+	s.cache.SetDocument(doc.ID, &models.DocumentoAlmacenado{
+		ID:        doc.ID,
+		Metadata:  metadata,
 		Contenido: doc.Contenido,
+		CacheInfo: models.CacheInfo{
+			CreatedAt:  time.Now(),
+			ExpiresAt:  time.Now().Add(s.cache.ttl),
+			LastAccess: time.Now(),
+		},
 	})
 
 	return nil
