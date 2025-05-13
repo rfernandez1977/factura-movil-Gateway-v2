@@ -1,0 +1,26 @@
+{
+    "hasTaxes": true,
+    "details": [
+        {
+            "product": {
+                "unit": {
+                    "code": "UND"
+                },
+                "price": 38859.07,
+                "name": "Servicio Mensual Plan Copihue",
+                "code": "PLAN-COPIHUE"
+            },
+            "position": 1,
+            "quantity": 1
+        }
+    ],
+    "client": {
+        "address": "APOQUINDO 6410 OF 605",
+        "name": "FACTURA MOVIL SPA",
+        "municipality": "LAS CONDES",
+        "line": "DESARROLLO DE SOFTWARE",
+        "code": "76212889-6"
+    },
+    "date": "2025-04-11",
+    "currency": "CLP"
+} 

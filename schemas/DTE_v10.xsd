@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+           xmlns:SiiDte="http://www.sii.cl/SiiDte"
+           targetNamespace="http://www.sii.cl/SiiDte"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+    <xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsig-core-schema.xsd"/>
+
+    <!-- Tipos básicos -->
+    <xs:simpleType name="RUTType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d{1,8}-[\dkK]"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MontoType">
+        <xs:restriction base="xs:integer">
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FechaType">
+        <xs:restriction base="xs:date"/>
+    </xs:simpleType>
+
+    <!-- Estructura del DTE -->
+    <xs:element name="DTE">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Documento">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Encabezado">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="IdDoc">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="TipoDTE" type="xs:string"/>
+                                                    <xs:element name="Folio" type="xs:integer"/>
+                                                    <xs:element name="FechaEmision" type="FechaType"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Emisor">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="RUTEmisor" type="RUTType"/>
+                                                    <xs:element name="RznSoc" type="xs:string"/>
+                                                    <xs:element name="GiroEmis" type="xs:string"/>
+                                                    <xs:element name="DirOrigen" type="xs:string"/>
+                                                    <xs:element name="CmnaOrigen" type="xs:string"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Receptor">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="RUTRecep" type="RUTType"/>
+                                                    <xs:element name="RznSocRecep" type="xs:string"/>
+                                                    <xs:element name="GiroRecep" type="xs:string"/>
+                                                    <xs:element name="DirRecep" type="xs:string"/>
+                                                    <xs:element name="CmnaRecep" type="xs:string"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Totales">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="MntNeto" type="MontoType"/>
+                                                    <xs:element name="TasaIVA" type="xs:string"/>
+                                                    <xs:element name="IVA" type="MontoType"/>
+                                                    <xs:element name="MntTotal" type="MontoType"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Detalles">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Detalle" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="NroLinDet" type="xs:integer"/>
+                                                    <xs:element name="NmbItem" type="xs:string"/>
+                                                    <xs:element name="QtyItem" type="xs:decimal"/>
+                                                    <xs:element name="PrcItem" type="MontoType"/>
+                                                    <xs:element name="MontoItem" type="MontoType"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="ID" type="xs:ID" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element ref="ds:Signature" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

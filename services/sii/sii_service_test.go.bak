@@ -1,0 +1,2243 @@
+package sii
+
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+// MockHTTPClient implementa la interfaz de http.Client para testing
+type MockHTTPClient struct {
+	mock.Mock
+}
+
+func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	args := m.Called(req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*http.Response), args.Error(1)
+}
+
+type mockTransport struct {
+	mock *MockHTTPClient
+}
+
+func (t *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return t.mock.Do(req)
+}
+
+func setupTestFiles(t *testing.T) (string, string, func()) {
+	// Crear directorio temporal
+	tmpDir, err := os.MkdirTemp("", "sii_test")
+	if err != nil {
+		t.Fatalf("Error al crear directorio temporal: %v", err)
+	}
+
+	// Crear archivos de certificado y llave
+	certFile := filepath.Join(tmpDir, "cert.pem")
+	keyFile := filepath.Join(tmpDir, "key.pem")
+
+	// Escribir contenido de prueba en los archivos
+	err = os.WriteFile(certFile, []byte("-----BEGIN CERTIFICATE-----\nMIICWDCCAcGgAwIBAgIJAP8m9/rSSJRvMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\n-----END CERTIFICATE-----"), 0600)
+	if err != nil {
+		t.Fatalf("Error al escribir archivo de certificado: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, []byte("-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC9QFi8Rf0o5IIp\n-----END PRIVATE KEY-----"), 0600)
+	if err != nil {
+		t.Fatalf("Error al escribir archivo de llave: %v", err)
+	}
+
+	// Función de limpieza
+	cleanup := func() {
+		os.RemoveAll(tmpDir)
+	}
+
+	return certFile, keyFile, cleanup
+}
+
+func TestNewSIIService(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	// Verificar que el servicio se creó correctamente
+	assert.NotNil(t, service)
+	assert.Equal(t, "https://api.test.cl", service.baseURL)
+	assert.Equal(t, "test-token", service.token)
+	assert.Equal(t, "CERTIFICACION", service.ambiente)
+}
+
+func TestConsultarEstado(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name:    "Estado aceptado",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Solicitud procesada correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Solicitud procesada correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Estado rechazado",
+			trackID: "456",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Solicitud rechazada",
+					"trackId": "456",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Solicitud rechazada",
+				TrackID: "456",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error en consulta",
+			trackID: "error",
+			resp:    nil,
+			err:     assert.AnError,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestConsultarEstadoCasosLimite(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "TrackID vacío",
+			trackID: "",
+			resp:    nil,
+			err:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "Respuesta con estado inválido",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"resp_body":{"estado":"INVALIDO","glosa":"Estado no reconocido","track_id":"123"}}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "Respuesta con JSON malformado",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "Respuesta con error 500",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Body:       io.NopCloser(strings.NewReader(`{"error":"Error interno del servidor"}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestTimeoutHandling(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "Timeout en la petición",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &timeoutError{}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+type timeoutError struct{}
+
+func (e *timeoutError) Error() string   { return "timeout" }
+func (e *timeoutError) Timeout() bool   { return true }
+func (e *timeoutError) Temporary() bool { return true }
+
+func TestCertificadoInvalido(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "Certificado inválido",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body:       io.NopCloser(strings.NewReader(`{"resp_body":{"estado":"ERROR","glosa":"Certificado inválido"}}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestEnviarDTE(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		dte     []byte
+		resp    *http.Response
+		err     error
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name: "DTE enviado correctamente",
+			dte:  []byte(`{"tipoDTE": "33", "folio": "123", "rutEmisor": "11.111.111-1"}`),
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "DTE enviado correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "DTE enviado correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name: "DTE rechazado",
+			dte:  []byte(`{"tipoDTE": "33", "folio": "999", "rutEmisor": "11.111.111-1"}`),
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "DTE rechazado",
+					"trackId": "999",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "DTE rechazado",
+				TrackID: "999",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.EnviarDTE(tt.dte)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestConsultarDTE(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		tipoDTE   string
+		folio     string
+		rutEmisor string
+		resp      *http.Response
+		err       error
+		want      *EstadoSII
+		wantErr   bool
+	}{
+		{
+			name:      "DTE encontrado",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "DTE encontrado",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "DTE encontrado",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "DTE no encontrado",
+			tipoDTE:   "33",
+			folio:     "999",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "DTE no encontrado",
+					"trackId": "999",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "DTE no encontrado",
+				TrackID: "999",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarDTE(tt.tipoDTE, tt.folio, tt.rutEmisor)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestVerificarComunicacion(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name: "Comunicación exitosa",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("")),
+			},
+			err:     nil,
+			wantErr: false,
+		},
+		{
+			name: "Servicio no disponible",
+			resp: &http.Response{
+				StatusCode: http.StatusServiceUnavailable,
+				Body:       io.NopCloser(strings.NewReader("")),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			err := service.VerificarComunicacion()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNetworkErrorTypes(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "Error de DNS",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &net.DNSError{}},
+			wantErr: true,
+		},
+		{
+			name:    "Error de conexión rechazada",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: syscall.ECONNREFUSED},
+			wantErr: true,
+		},
+		{
+			name:    "Error de conexión reseteada",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: syscall.ECONNRESET},
+			wantErr: true,
+		},
+		{
+			name:    "Error de host no alcanzable",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: syscall.EHOSTUNREACH},
+			wantErr: true,
+		},
+		{
+			name:    "Error de red no disponible",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: syscall.ENETUNREACH},
+			wantErr: true,
+		},
+		{
+			name:    "Error de timeout",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &timeoutError{}},
+			wantErr: true,
+		},
+		{
+			name:    "Error de TLS",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &tls.CertificateVerificationError{}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				assert.Contains(t, err.Error(), "error de red")
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestHTTPStatusCodes(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name:    "Error 400 Bad Request",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"resp_body": {
+						"estado": "RECHAZADO",
+						"glosa": "Solicitud inválida",
+						"track_id": "123",
+						"numero_atencion": "AT-123",
+						"fecha_proceso": "2024-03-20T10:00:00Z",
+						"fecha_recepcion": "2024-03-20T10:00:00Z",
+						"fecha_rechazo": "2024-03-20T10:00:00Z",
+						"errores": [
+							{
+								"codigo": "400",
+								"descripcion": "Solicitud inválida",
+								"detalle": "La solicitud no cumple con el formato esperado"
+							}
+						]
+					}
+				}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "Error 401 Unauthorized",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "No autorizado",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "No autorizado",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error 403 Forbidden",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusForbidden,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Acceso denegado",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Acceso denegado",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error 404 Not Found",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusNotFound,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Recurso no encontrado",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Recurso no encontrado",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error 500 Internal Server Error",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Error interno del servidor",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Error interno del servidor",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestConcurrentRequests(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	// Configurar el mock para responder con éxito
+	mockClient.On("Do", mock.Anything).Return(&http.Response{
+		StatusCode: http.StatusOK,
+		Body: io.NopCloser(strings.NewReader(`{
+			"estado": "ACEPTADO",
+			"glosa": "Solicitud procesada correctamente",
+			"trackId": "123",
+			"fecha": "2024-03-20T10:00:00Z"
+		}`)),
+	}, nil)
+
+	// Realizar múltiples solicitudes concurrentes
+	var wg sync.WaitGroup
+	results := make(chan *EstadoSII, 10)
+	errors := make(chan error, 10)
+
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := service.ConsultarEstado("123")
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- result
+		}()
+	}
+
+	// Esperar a que todas las goroutines terminen
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Verificar resultados
+	for result := range results {
+		assert.NotNil(t, result)
+		assert.Equal(t, "ACEPTADO", result.Estado)
+		assert.Equal(t, "Solicitud procesada correctamente", result.Glosa)
+		assert.Equal(t, "123", result.TrackID)
+		assert.Equal(t, time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC), result.Fecha)
+	}
+
+	// Verificar que no hubo errores
+	for err := range errors {
+		assert.NoError(t, err)
+	}
+}
+
+func TestNewSIIServiceValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		baseURL  string
+		token    string
+		ambiente string
+		certFile string
+		keyFile  string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Parámetros válidos",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  false,
+		},
+		{
+			name:     "BaseURL vacío",
+			baseURL:  "",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  true,
+			errMsg:   "baseURL es requerido",
+		},
+		{
+			name:     "Token vacío",
+			baseURL:  "https://api.test.cl",
+			token:    "",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  true,
+			errMsg:   "token es requerido",
+		},
+		{
+			name:     "CertFile vacío",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "",
+			keyFile:  "testdata/key.pem",
+			wantErr:  true,
+			errMsg:   "certFile es requerido",
+		},
+		{
+			name:     "KeyFile vacío",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "",
+			wantErr:  true,
+			errMsg:   "keyFile es requerido",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, err := NewSIIService(tt.baseURL, tt.token, tt.ambiente, tt.certFile, tt.keyFile)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, service)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, service)
+				assert.Equal(t, tt.baseURL, service.baseURL)
+				assert.Equal(t, tt.token, service.token)
+				assert.Equal(t, tt.ambiente, service.ambiente)
+			}
+		})
+	}
+}
+
+func TestJSONMalformed(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "JSON malformado",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"estado": "ACEPTADO", "glosa": "Solicitud procesada correctamente", "trackId": "123", "fecha": "2024-03-20T10:00:00Z"`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+		{
+			name:    "JSON con fecha inválida",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"estado": "ACEPTADO", "glosa": "Solicitud procesada correctamente", "trackId": "123", "fecha": "fecha-invalida"}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestConcurrentRequestsDifferentStates(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	// Configurar el mock para responder con diferentes estados
+	responses := []struct {
+		estado string
+		glosa  string
+	}{
+		{"ACEPTADO", "Solicitud procesada correctamente"},
+		{"RECHAZADO", "Solicitud rechazada"},
+		{"PENDIENTE", "Solicitud en proceso"},
+		{"ERROR", "Error en el procesamiento"},
+	}
+
+	for i, resp := range responses {
+		mockClient.On("Do", mock.Anything).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body: io.NopCloser(strings.NewReader(fmt.Sprintf(`{
+				"estado": "%s",
+				"glosa": "%s",
+				"trackId": "%d",
+				"fecha": "2024-03-20T10:00:00Z"
+			}`, resp.estado, resp.glosa, i+1))),
+		}, nil).Once()
+	}
+
+	// Realizar múltiples solicitudes concurrentes
+	var wg sync.WaitGroup
+	results := make(chan *EstadoSII, len(responses))
+	errors := make(chan error, len(responses))
+
+	for i := 0; i < len(responses); i++ {
+		wg.Add(1)
+		go func(trackID string) {
+			defer wg.Done()
+			result, err := service.ConsultarEstado(trackID)
+			if err != nil {
+				errors <- err
+				return
+			}
+			results <- result
+		}(fmt.Sprintf("%d", i+1))
+	}
+
+	// Esperar a que todas las goroutines terminen
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errors)
+	}()
+
+	// Verificar resultados
+	receivedStates := make(map[string]bool)
+	for result := range results {
+		assert.NotNil(t, result)
+		receivedStates[result.Estado] = true
+	}
+
+	// Verificar que recibimos todos los estados esperados
+	for _, resp := range responses {
+		assert.True(t, receivedStates[resp.estado], "No se recibió el estado %s", resp.estado)
+	}
+
+	// Verificar que no hubo errores
+	for err := range errors {
+		assert.NoError(t, err)
+	}
+}
+
+func TestCertificateErrors(t *testing.T) {
+	tests := []struct {
+		name     string
+		baseURL  string
+		token    string
+		ambiente string
+		certFile string
+		keyFile  string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Certificado no existe",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/no_existe.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  true,
+			errMsg:   "error cargando certificado",
+		},
+		{
+			name:     "Llave no existe",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/no_existe.pem",
+			wantErr:  true,
+			errMsg:   "error cargando certificado",
+		},
+		{
+			name:     "Certificado inválido",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/invalid_cert.pem",
+			keyFile:  "testdata/invalid_key.pem",
+			wantErr:  true,
+			errMsg:   "error cargando certificado",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, err := NewSIIService(tt.baseURL, tt.token, tt.ambiente, tt.certFile, tt.keyFile)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, service)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, service)
+			}
+		})
+	}
+}
+
+func TestTimeoutConfigurations(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		wantErr bool
+	}{
+		{
+			name:    "Timeout inmediato",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &timeoutError{}},
+			wantErr: true,
+		},
+		{
+			name:    "Timeout después de delay",
+			trackID: "123",
+			resp:    nil,
+			err:     &url.Error{Op: "Get", URL: "https://api.test.cl", Err: &timeoutError{}},
+			wantErr: true,
+		},
+		{
+			name:    "Contexto cancelado",
+			trackID: "123",
+			resp:    nil,
+			err:     context.Canceled,
+			wantErr: true,
+		},
+		{
+			name:    "Deadline excedido",
+			trackID: "123",
+			resp:    nil,
+			err:     context.DeadlineExceeded,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				assert.Contains(t, err.Error(), "timeout")
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestHTTPHeaders(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name           string
+		trackID        string
+		expectedAuth   string
+		expectedAccept string
+		resp           *http.Response
+		err            error
+		wantErr        bool
+	}{
+		{
+			name:           "Headers correctos",
+			trackID:        "123",
+			expectedAuth:   "Bearer test-token",
+			expectedAccept: "application/json",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Solicitud procesada correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err:     nil,
+			wantErr: false,
+		},
+		{
+			name:           "Headers incorrectos",
+			trackID:        "123",
+			expectedAuth:   "Bearer wrong-token",
+			expectedAccept: "application/xml",
+			resp: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body:       io.NopCloser(strings.NewReader(`{"error": "No autorizado"}`)),
+			},
+			err:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+				return req.Header.Get("Authorization") == tt.expectedAuth &&
+					req.Header.Get("Accept") == tt.expectedAccept
+			})).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, "ACEPTADO", result.Estado)
+				assert.Equal(t, "Solicitud procesada correctamente", result.Glosa)
+				assert.Equal(t, "123", result.TrackID)
+			}
+		})
+	}
+}
+
+func TestRetryMechanism(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		trackID   string
+		responses []struct {
+			resp *http.Response
+			err  error
+		}
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name:    "Éxito después de reintentos",
+			trackID: "123",
+			responses: []struct {
+				resp *http.Response
+				err  error
+			}{
+				{
+					resp: &http.Response{
+						StatusCode: http.StatusServiceUnavailable,
+						Body:       io.NopCloser(strings.NewReader(`{"error": "Servicio temporalmente no disponible"}`)),
+					},
+					err: nil,
+				},
+				{
+					resp: &http.Response{
+						StatusCode: http.StatusOK,
+						Body: io.NopCloser(strings.NewReader(`{
+							"estado": "ACEPTADO",
+							"glosa": "Solicitud procesada correctamente",
+							"trackId": "123",
+							"fecha": "2024-03-20T10:00:00Z"
+						}`)),
+					},
+					err: nil,
+				},
+			},
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Solicitud procesada correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Fallo después de reintentos",
+			trackID: "456",
+			responses: []struct {
+				resp *http.Response
+				err  error
+			}{
+				{
+					resp: &http.Response{
+						StatusCode: http.StatusServiceUnavailable,
+						Body:       io.NopCloser(strings.NewReader(`{"error": "Servicio temporalmente no disponible"}`)),
+					},
+					err: nil,
+				},
+				{
+					resp: &http.Response{
+						StatusCode: http.StatusServiceUnavailable,
+						Body:       io.NopCloser(strings.NewReader(`{"error": "Servicio temporalmente no disponible"}`)),
+					},
+					err: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, resp := range tt.responses {
+				mockClient.On("Do", mock.Anything).Return(resp.resp, resp.err).Once()
+			}
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestDateFormatHandling(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name:    "Formato ISO8601",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Solicitud procesada correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Solicitud procesada correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Formato con offset",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Solicitud procesada correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00-03:00"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Solicitud procesada correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 13, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Formato inválido",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Solicitud procesada correctamente",
+					"trackId": "123",
+					"fecha": "20-03-2024 10:00:00"
+				}`)),
+			},
+			err:     nil,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestSIIErrors(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name    string
+		trackID string
+		resp    *http.Response
+		err     error
+		want    *EstadoSII
+		wantErr bool
+	}{
+		{
+			name:    "Error de validación SII",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Error de validación",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "VAL001",
+							"descripcion": "RUT emisor inválido"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Error de validación",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error de certificado SII",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Certificado no válido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "CERT001",
+							"descripcion": "Certificado expirado"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Certificado no válido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "Error de límite de solicitudes",
+			trackID: "123",
+			resp: &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Límite de solicitudes excedido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "LIM001",
+							"descripcion": "Se ha excedido el límite de solicitudes permitidas"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Límite de solicitudes excedido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarEstado(tt.trackID)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestDTETypes(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		tipoDTE   string
+		folio     string
+		rutEmisor string
+		resp      *http.Response
+		err       error
+		want      *EstadoSII
+		wantErr   bool
+	}{
+		{
+			name:      "Factura Electrónica",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Factura electrónica procesada correctamente",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Factura electrónica procesada correctamente",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Boleta Electrónica",
+			tipoDTE:   "39",
+			folio:     "456",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Boleta electrónica procesada correctamente",
+					"trackId": "456",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Boleta electrónica procesada correctamente",
+				TrackID: "456",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Nota de Crédito Electrónica",
+			tipoDTE:   "61",
+			folio:     "789",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Nota de crédito electrónica procesada correctamente",
+					"trackId": "789",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Nota de crédito electrónica procesada correctamente",
+				TrackID: "789",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Guía de Despacho",
+			tipoDTE:   "52",
+			folio:     "101",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Guía de despacho procesada correctamente",
+					"trackId": "101",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Guía de despacho procesada correctamente",
+				TrackID: "101",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Nota de Débito",
+			tipoDTE:   "56",
+			folio:     "202",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Nota de débito procesada correctamente",
+					"trackId": "202",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Nota de débito procesada correctamente",
+				TrackID: "202",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Tipo DTE inválido",
+			tipoDTE:   "999",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Tipo de DTE no válido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Tipo de DTE no válido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarDTE(tt.tipoDTE, tt.folio, tt.rutEmisor)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestEnvironments(t *testing.T) {
+	tests := []struct {
+		name     string
+		baseURL  string
+		token    string
+		ambiente string
+		certFile string
+		keyFile  string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "Ambiente de certificación",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "CERTIFICACION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  false,
+		},
+		{
+			name:     "Ambiente de producción",
+			baseURL:  "https://api.sii.cl",
+			token:    "prod-token",
+			ambiente: "PRODUCCION",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  false,
+		},
+		{
+			name:     "Ambiente inválido",
+			baseURL:  "https://api.test.cl",
+			token:    "test-token",
+			ambiente: "INVALIDO",
+			certFile: "testdata/cert.pem",
+			keyFile:  "testdata/key.pem",
+			wantErr:  true,
+			errMsg:   "ambiente no válido",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, err := NewSIIService(tt.baseURL, tt.token, tt.ambiente, tt.certFile, tt.keyFile)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Nil(t, service)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, service)
+				assert.Equal(t, tt.baseURL, service.baseURL)
+				assert.Equal(t, tt.token, service.token)
+				assert.Equal(t, tt.ambiente, service.ambiente)
+			}
+		})
+	}
+}
+
+func TestRUTValidation(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		tipoDTE   string
+		folio     string
+		rutEmisor string
+		resp      *http.Response
+		err       error
+		want      *EstadoSII
+		wantErr   bool
+	}{
+		{
+			name:      "RUT válido con guión",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "RUT válido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "RUT válido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "RUT válido sin guión",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11111111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "RUT válido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "RUT válido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "RUT inválido - dígito verificador incorrecto",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-2",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "RUT inválido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "RUT inválido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "RUT inválido - formato incorrecto",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11111111",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Formato de RUT inválido",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Formato de RUT inválido",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarDTE(tt.tipoDTE, tt.folio, tt.rutEmisor)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestFolioFormats(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		tipoDTE   string
+		folio     string
+		rutEmisor string
+		resp      *http.Response
+		err       error
+		want      *EstadoSII
+		wantErr   bool
+	}{
+		{
+			name:      "Folio numérico válido",
+			tipoDTE:   "33",
+			folio:     "123456",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Folio válido",
+					"trackId": "123456",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Folio válido",
+				TrackID: "123456",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Folio con ceros a la izquierda",
+			tipoDTE:   "33",
+			folio:     "000123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "ACEPTADO",
+					"glosa": "Folio válido",
+					"trackId": "000123",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "ACEPTADO",
+				Glosa:   "Folio válido",
+				TrackID: "000123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		{
+			name:      "Folio inválido - caracteres no numéricos",
+			tipoDTE:   "33",
+			folio:     "123ABC",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Formato de folio inválido",
+					"trackId": "123ABC",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Formato de folio inválido",
+				TrackID: "123ABC",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Folio inválido - longitud excedida",
+			tipoDTE:   "33",
+			folio:     "12345678901234567890",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Longitud de folio excedida",
+					"trackId": "12345678901234567890",
+					"fecha": "2024-03-20T10:00:00Z"
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Longitud de folio excedida",
+				TrackID: "12345678901234567890",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarDTE(tt.tipoDTE, tt.folio, tt.rutEmisor)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}
+
+func TestValidationErrors(t *testing.T) {
+	mockClient := &MockHTTPClient{}
+	service := &SIIServiceImpl{
+		baseURL:    "https://api.test.cl",
+		token:      "test-token",
+		ambiente:   "CERTIFICACION",
+		httpClient: &http.Client{Transport: &mockTransport{mockClient}},
+	}
+
+	tests := []struct {
+		name      string
+		tipoDTE   string
+		folio     string
+		rutEmisor string
+		resp      *http.Response
+		err       error
+		want      *EstadoSII
+		wantErr   bool
+	}{
+		{
+			name:      "Error de validación - monto total inválido",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Error de validación",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "VAL001",
+							"descripcion": "Monto total inválido"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Error de validación",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Error de validación - fecha fuera de rango",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Error de validación",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "VAL002",
+							"descripcion": "Fecha fuera de rango permitido"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Error de validación",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+		{
+			name:      "Error de validación - múltiples errores",
+			tipoDTE:   "33",
+			folio:     "123",
+			rutEmisor: "11.111.111-1",
+			resp: &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(strings.NewReader(`{
+					"estado": "RECHAZADO",
+					"glosa": "Error de validación",
+					"trackId": "123",
+					"fecha": "2024-03-20T10:00:00Z",
+					"errores": [
+						{
+							"codigo": "VAL001",
+							"descripcion": "Monto total inválido"
+						},
+						{
+							"codigo": "VAL002",
+							"descripcion": "Fecha fuera de rango permitido"
+						},
+						{
+							"codigo": "VAL003",
+							"descripcion": "RUT receptor inválido"
+						}
+					]
+				}`)),
+			},
+			err: nil,
+			want: &EstadoSII{
+				Estado:  "RECHAZADO",
+				Glosa:   "Error de validación",
+				TrackID: "123",
+				Fecha:   time.Date(2024, 3, 20, 10, 0, 0, 0, time.UTC),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient.On("Do", mock.Anything).Return(tt.resp, tt.err).Once()
+
+			result, err := service.ConsultarDTE(tt.tipoDTE, tt.folio, tt.rutEmisor)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.want.Estado, result.Estado)
+				assert.Equal(t, tt.want.Glosa, result.Glosa)
+				assert.Equal(t, tt.want.TrackID, result.TrackID)
+				assert.Equal(t, tt.want.Fecha, result.Fecha)
+			}
+		})
+	}
+}

@@ -1,0 +1,141 @@
+{
+  "metrics": {
+    "http": {
+      "enabled": true,
+      "endpoints": [
+        {
+          "path": "/metrics",
+          "interval": "15s"
+        }
+      ],
+      "collectors": [
+        "request_duration_seconds",
+        "request_size_bytes",
+        "response_size_bytes",
+        "requests_total",
+        "requests_in_flight"
+      ]
+    },
+    "system": {
+      "enabled": true,
+      "collectors": [
+        "cpu_usage",
+        "memory_usage",
+        "disk_usage",
+        "goroutines",
+        "heap_objects"
+      ],
+      "interval": "30s"
+    },
+    "business": {
+      "enabled": true,
+      "collectors": [
+        "documents_issued_total",
+        "documents_rejected_total",
+        "sync_operations_total",
+        "sync_errors_total",
+        "api_calls_total",
+        "cache_hits_total",
+        "cache_misses_total"
+      ],
+      "interval": "1m"
+    }
+  },
+  "alerts": {
+    "rules": [
+      {
+        "name": "HighErrorRate",
+        "expr": "rate(documents_rejected_total[5m]) > 0.1",
+        "for": "5m",
+        "labels": {
+          "severity": "critical"
+        },
+        "annotations": {
+          "summary": "High document rejection rate",
+          "description": "Document rejection rate is above 10% for the last 5 minutes"
+        }
+      },
+      {
+        "name": "HighLatency",
+        "expr": "rate(request_duration_seconds_sum[5m]) / rate(request_duration_seconds_count[5m]) > 1",
+        "for": "5m",
+        "labels": {
+          "severity": "warning"
+        },
+        "annotations": {
+          "summary": "High API latency",
+          "description": "API latency is above 1 second for the last 5 minutes"
+        }
+      },
+      {
+        "name": "HighMemoryUsage",
+        "expr": "process_resident_memory_bytes / process_virtual_memory_bytes > 0.8",
+        "for": "5m",
+        "labels": {
+          "severity": "warning"
+        },
+        "annotations": {
+          "summary": "High memory usage",
+          "description": "Memory usage is above 80%"
+        }
+      }
+    ]
+  },
+  "dashboards": {
+    "system": {
+      "title": "System Overview",
+      "panels": [
+        {
+          "title": "CPU Usage",
+          "type": "graph",
+          "metrics": ["process_cpu_seconds_total"]
+        },
+        {
+          "title": "Memory Usage",
+          "type": "graph",
+          "metrics": ["process_resident_memory_bytes"]
+        },
+        {
+          "title": "Goroutines",
+          "type": "graph",
+          "metrics": ["go_goroutines"]
+        }
+      ]
+    },
+    "business": {
+      "title": "Business Metrics",
+      "panels": [
+        {
+          "title": "Documents Issued",
+          "type": "counter",
+          "metrics": ["documents_issued_total"]
+        },
+        {
+          "title": "Sync Operations",
+          "type": "graph",
+          "metrics": ["sync_operations_total"]
+        },
+        {
+          "title": "API Calls",
+          "type": "graph",
+          "metrics": ["api_calls_total"]
+        }
+      ]
+    },
+    "performance": {
+      "title": "Performance Metrics",
+      "panels": [
+        {
+          "title": "Request Duration",
+          "type": "histogram",
+          "metrics": ["request_duration_seconds"]
+        },
+        {
+          "title": "Cache Hit Ratio",
+          "type": "gauge",
+          "metrics": ["cache_hits_total", "cache_misses_total"]
+        }
+      ]
+    }
+  }
+} 

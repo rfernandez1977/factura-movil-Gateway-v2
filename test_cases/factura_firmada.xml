@@ -1,0 +1,59 @@
+<DTE version="1.0">
+  <Documento ID="F1002">
+    <Encabezado>
+      <IdDoc>
+        <TipoDTE>33</TipoDTE>
+        <Folio>1002</Folio>
+        <FechaEmision>2025-04-11</FechaEmision>
+      </IdDoc>
+      <Emisor>
+        <RUTEmisor>76212889-6</RUTEmisor>
+        <RznSoc>FACTURA MOVIL SPA</RznSoc>
+        <GiroEmis>DESARROLLO DE SOFTWARE</GiroEmis>
+        <Acteco>620200</Acteco>
+        <DirOrigen>APOQUINDO 6410 OF 605</DirOrigen>
+        <CmnaOrigen>LAS CONDES</CmnaOrigen>
+        <CiudadOrigen>SANTIAGO</CiudadOrigen>
+      </Emisor>
+      <Receptor>
+        <RUTRecep>76212889-6</RUTRecep>
+        <RznSocRecep>FACTURA MOVIL SPA</RznSocRecep>
+        <GiroRecep></GiroRecep>
+        <DirRecep></DirRecep>
+        <CmnaRecep></CmnaRecep>
+      </Receptor>
+      <Totales>
+        <MntNeto>38859.07</MntNeto>
+        <TasaIVA>19</TasaIVA>
+        <IVA>7383.2233</IVA>
+        <MntTotal>46242.2933</MntTotal>
+      </Totales>
+    </Encabezado>
+    <Detalle>
+      <NroLinDet>1</NroLinDet>
+      <NmbItem>Servicio Mensual Plan Copihue</NmbItem>
+      <QtyItem>1</QtyItem>
+      <PrcItem>38859.07</PrcItem>
+      <MontoItem>38859.07</MontoItem>
+      <CdgItem>PLAN-COPIHUE</CdgItem>
+    </Detalle>
+  </Documento>
+<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<SignedInfo>
+				<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+				<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+				<Reference URI="">
+					<Transforms>
+						<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+					</Transforms>
+					<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+					<DigestValue>ZGlnZXN0LXNpbXVsYWRv</DigestValue>
+				</Reference>
+			</SignedInfo>
+			<SignatureValue>FIRMA_RSA_SIMULADA</SignatureValue>
+			<KeyInfo>
+				<X509Data>
+					<X509Certificate>Y2VydGlmaWNhZG8tc2ltdWxhZG8=</X509Certificate>
+				</X509Data>
+			</KeyInfo>
+		</Signature></DTE>

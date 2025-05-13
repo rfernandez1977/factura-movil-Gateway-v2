@@ -1,0 +1,24 @@
+{
+    "empresa": {
+        "rutEmisor": "76212889-6",
+        "rutEnvia": "13195458-1",
+        "razonSocial": "Factura Movil SPA",
+        "giroEmis": "DESARROLLO DE SOFTWARE",
+        "acteco": ["722000"],
+        "dirOrigen": "APOQUINDO 6410 OF 605",
+        "cmnaOrigen": "LAS CONDES",
+        "ciudadOrigen": "SANTIAGO"
+    },
+    "firma": {
+        "path": "firma_test/1/firma.pfx",
+        "password": "83559705FM",
+        "ambiente": "certificacion"
+    },
+    "folios": {
+        "factura": {
+            "tipo": 33,
+            "desde": 1002,
+            "hasta": 1992
+        }
+    }
+} 

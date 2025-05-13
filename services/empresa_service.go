@@ -1,0 +1,293 @@
+package services
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/cursor/FMgo/config"
+	"github.com/cursor/FMgo/models"
+)
+
+// EmpresaService maneja la lógica de negocio de empresas
+type EmpresaService struct {
+	config *config.SupabaseConfig
+}
+
+// NewEmpresaService crea una nueva instancia del servicio de empresa
+func NewEmpresaService(config *config.SupabaseConfig) *EmpresaService {
+	return &EmpresaService{
+		config: config,
+	}
+}
+
+// GetEmpresaByRUT obtiene una empresa por su RUT
+func (s *EmpresaService) GetEmpresaByRUT(rut string) (*models.Empresa, error) {
+	var empresa models.Empresa
+	err := s.config.Client.DB.From("empresas").
+		Select("*").
+		Eq("rut", rut).
+		Single().
+		Execute(&empresa)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener empresa: %v", err)
+	}
+
+	return &empresa, nil
+}
+
+// GetEmpresaByID obtiene una empresa por su ID
+func (s *EmpresaService) GetEmpresaByID(id string) (*models.Empresa, error) {
+	var empresa models.Empresa
+	err := s.config.Client.DB.From("empresas").
+		Select("*").
+		Eq("id", id).
+		Single().
+		Execute(&empresa)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener empresa: %v", err)
+	}
+
+	return &empresa, nil
+}
+
+// CrearEmpresa crea una nueva empresa
+func (s *EmpresaService) CrearEmpresa(empresa *models.Empresa) (*models.Empresa, error) {
+	// Validar empresa
+	if err := s.validarEmpresa(empresa); err != nil {
+		return nil, err
+	}
+
+	// Guardar empresa en Supabase
+	_, err := s.config.Client.DB.From("empresas").
+		Insert(empresa).
+		Execute()
+
+	if err != nil {
+		return nil, fmt.Errorf("error al guardar empresa: %v", err)
+	}
+
+	return empresa, nil
+}
+
+// ActualizarEmpresa actualiza una empresa existente
+func (s *EmpresaService) ActualizarEmpresa(empresa *models.Empresa) error {
+	// Validar empresa
+	if err := s.validarEmpresa(empresa); err != nil {
+		return err
+	}
+
+	// Actualizar empresa en Supabase
+	_, err := s.config.Client.DB.From("empresas").
+		Update(empresa).
+		Eq("id", empresa.ID).
+		Execute()
+
+	if err != nil {
+		return fmt.Errorf("error al actualizar empresa: %v", err)
+	}
+
+	return nil
+}
+
+// EliminarEmpresa elimina una empresa
+func (s *EmpresaService) EliminarEmpresa(id string) error {
+	// Eliminar empresa de Supabase
+	_, err := s.config.Client.DB.From("empresas").
+		Delete().
+		Eq("id", id).
+		Execute()
+
+	if err != nil {
+		return fmt.Errorf("error al eliminar empresa: %v", err)
+	}
+
+	return nil
+}
+
+// validarEmpresa valida una empresa antes de crearla o actualizarla
+func (s *EmpresaService) validarEmpresa(empresa *models.Empresa) error {
+	if empresa.Rut == "" {
+		return fmt.Errorf("RUT requerido")
+	}
+	if empresa.RazonSocial == "" {
+		return fmt.Errorf("razón social requerida")
+	}
+	if empresa.Giro == "" {
+		return fmt.Errorf("giro requerido")
+	}
+	if empresa.Direccion == "" {
+		return fmt.Errorf("dirección requerida")
+	}
+	if empresa.Comuna == "" {
+		return fmt.Errorf("comuna requerida")
+	}
+	if empresa.Ciudad == "" {
+		return fmt.Errorf("ciudad requerida")
+	}
+	return nil
+}
+
+// GuardarCertificado guarda el certificado digital de una empresa
+func (s *EmpresaService) GuardarCertificado(ctx context.Context, certificado *models.CertificadoDigital) error {
+	certificado.CreatedAt = time.Now()
+	certificado.UpdatedAt = time.Now()
+
+	err := s.config.Client.DB.From("certificados_digitales").
+		Insert(certificado).
+		Execute(nil)
+
+	if err != nil {
+		return fmt.Errorf("error al guardar certificado: %v", err)
+	}
+
+	return nil
+}
+
+// ObtenerCertificado obtiene el certificado digital de una empresa
+func (s *EmpresaService) ObtenerCertificado(ctx context.Context, empresaID string) (*models.CertificadoDigital, error) {
+	var certificado models.CertificadoDigital
+	err := s.config.Client.DB.From("certificados_digitales").
+		Select("*").
+		Eq("empresa_id", empresaID).
+		Single().
+		Execute(&certificado)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener certificado: %v", err)
+	}
+
+	return &certificado, nil
+}
+
+// GuardarCAF guarda un CAF para una empresa
+func (s *EmpresaService) GuardarCAF(ctx context.Context, caf *models.CAF) error {
+	caf.CreatedAt = time.Now()
+	caf.UpdatedAt = time.Now()
+	caf.Estado = "ACTIVO"
+	caf.FolioActual = caf.FolioInicial
+
+	err := s.config.Client.DB.From("cafs").
+		Insert(caf).
+		Execute(nil)
+
+	if err != nil {
+		return fmt.Errorf("error al guardar CAF: %v", err)
+	}
+
+	return nil
+}
+
+// ObtenerCAFActivo obtiene un CAF activo para un tipo de documento
+func (s *EmpresaService) ObtenerCAFActivo(ctx context.Context, empresaID, tipoDocumento string) (*models.CAF, error) {
+	var caf models.CAF
+	err := s.config.Client.DB.From("cafs").
+		Select("*").
+		Eq("empresa_id", empresaID).
+		Eq("tipo_documento", tipoDocumento).
+		Eq("estado", "ACTIVO").
+		Single().
+		Execute(&caf)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener CAF: %v", err)
+	}
+
+	return &caf, nil
+}
+
+// ActualizarFolioCAF actualiza el folio actual de un CAF
+func (s *EmpresaService) ActualizarFolioCAF(ctx context.Context, cafID string) error {
+	caf, err := s.obtenerCAF(ctx, cafID)
+	if err != nil {
+		return err
+	}
+
+	caf.FolioActual++
+	if caf.FolioActual > caf.FolioFinal {
+		caf.Estado = "AGOTADO"
+	}
+
+	caf.UpdatedAt = time.Now()
+
+	err = s.config.Client.DB.From("cafs").
+		Update(caf).
+		Eq("id", cafID).
+		Execute(nil)
+
+	if err != nil {
+		return fmt.Errorf("error al actualizar folio CAF: %v", err)
+	}
+
+	return nil
+}
+
+// GuardarDocumento guarda un documento tributario
+func (s *EmpresaService) GuardarDocumento(ctx context.Context, documento *models.Documento) error {
+	documento.CreatedAt = time.Now()
+	documento.UpdatedAt = time.Now()
+
+	err := s.config.Client.DB.From("documentos").
+		Insert(documento).
+		Execute(nil)
+
+	if err != nil {
+		return fmt.Errorf("error al guardar documento: %v", err)
+	}
+
+	return nil
+}
+
+// ObtenerDocumento obtiene un documento por su ID
+func (s *EmpresaService) ObtenerDocumento(ctx context.Context, id string) (*models.Documento, error) {
+	var documento models.Documento
+	err := s.config.Client.DB.From("documentos").
+		Select("*").
+		Eq("id", id).
+		Single().
+		Execute(&documento)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener documento: %v", err)
+	}
+
+	return &documento, nil
+}
+
+// ListarDocumentos obtiene una lista de documentos con filtros
+func (s *EmpresaService) ListarDocumentos(ctx context.Context, empresaID string, filtros map[string]interface{}) ([]models.Documento, error) {
+	query := s.config.Client.DB.From("documentos").
+		Select("*").
+		Eq("empresa_id", empresaID)
+
+	for key, value := range filtros {
+		query = query.Eq(key, value)
+	}
+
+	var documentos []models.Documento
+	err := query.Execute(&documentos)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al listar documentos: %v", err)
+	}
+
+	return documentos, nil
+}
+
+// obtenerCAF es un método auxiliar para obtener un CAF por su ID
+func (s *EmpresaService) obtenerCAF(ctx context.Context, cafID string) (*models.CAF, error) {
+	var caf models.CAF
+	err := s.config.Client.DB.From("cafs").
+		Select("*").
+		Eq("id", cafID).
+		Single().
+		Execute(&caf)
+
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener CAF: %v", err)
+	}
+
+	return &caf, nil
+}

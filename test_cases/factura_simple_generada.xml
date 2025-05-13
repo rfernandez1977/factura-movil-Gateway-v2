@@ -1,0 +1,14 @@
+<Factura>
+  <RutEmisor>76212889-6</RutEmisor>
+  <Folio>1002</Folio>
+  <FechaEmision>2025-04-11</FechaEmision>
+  <MontoTotal>46242.2933</MontoTotal>
+  <Items>
+    <Item>
+      <Descripcion>Servicio Mensual Plan Copihue</Descripcion>
+      <Cantidad>1</Cantidad>
+      <Precio>38859.07</Precio>
+      <Total>38859.07</Total>
+    </Item>
+  </Items>
+</Factura>

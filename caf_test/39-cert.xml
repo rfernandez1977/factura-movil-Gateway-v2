@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<AUTORIZACION>
+    <CAF version="1.0">
+        <DA>
+            <RE>76212889-6</RE>
+            <RS>FACTURA MOVIL SPA</RS>
+            <TD>39</TD>
+            <RNG>
+                <D>1002</D>
+                <H>1992</H>
+            </RNG>
+            <FA>2024-03-21</FA>
+            <RSAPK>
+                <M>xmjPNYYFUPvs1oVZ6LRTtU+YwZxKEVXCPUoVODN+1ErF5OuoGGv6+5TQPJlQubY0tX0RFwKfqZPFT+wV07XsqQ==</M>
+                <E>Aw==</E>
+            </RSAPK>
+            <IDK>100</IDK>
+        </DA>
+        <FRMA algoritmo="SHA1withRSA">UxJT1JBVEVTIFNBTiBNQVJUSU4gQ0FSUkFTQ08=</FRMA>
+    </CAF>
+    <RSASK>-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAMY4zzWGBVD77NaFWei0U7VPmMGcShFVwj1KFTgzftRKxeTrqBhr
++vuU0DyZULm2NLV9ERcCn6mTxU/sFdO17KkCAQMCQQC9KqZzUFz+0n+qT+4+J1Cb
++kT+UxZ6uR/yt2c/Af03Gy7hWXWI7W3h3FLWJCb+8+JX1xZ1qH2W9WXH7bqPvWQb
+AgEAAoGAJHoWH8QP1fM8hWE5DcS0Qy2e2XUQZhN5QZhV0oqEQs2jc+rpqaHYrGVB
+XZZ+3AJZx5BwkFUaEmpxQX1YZWKFnNK6Nh7G4y7ZI4Yv7S5/3RxXDG7OUvGtzY7O
+y5Qr6LwjCtZBQJ5Ef5MxhXv8HhoPOrqoHZZGmZi/1+0FvpYDZQECQQDGOc81hgVQ
+++zWhVnotFO1T5jBnEoRVcI9ShU4M37USsXk66gYa/r7lNA8mVC5tjS1fREXAp+p
+k8VP7BXTteypAkEAvSqmc1Bc/tJ/qk/uPidQm/pE/lMWerkf8rdnPwH9Nxsu4Vl1
+iO1t4dxS1iQm/vPiV9cWdah9lvVlx+26j71kGw==
+-----END RSA PRIVATE KEY-----</RSASK>
+    <RSAPUBK>-----BEGIN PUBLIC KEY-----
+MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMY4zzWGBVD77NaFWei0U7VPmMGcShFV
+wj1KFTgzftRKxeTrqBhr+vuU0DyZULm2NLV9ERcCn6mTxU/sFdO17KkCAQM=
+-----END PUBLIC KEY-----</RSAPUBK>
+</AUTORIZACION> 
