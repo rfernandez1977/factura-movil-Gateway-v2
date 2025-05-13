@@ -133,6 +133,8 @@ type Config struct {
 		APIKey      string `json:"apiKey"`
 		Environment string `json:"environment"`
 	} `json:"monitoring"`
+
+	Client interface{} `json:"-" bson:"-"`
 }
 
 // ConfiguracionSII representa la configuración específica para la integración con el SII

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/cursor/FMgo/models"
+	"github.com/supabase-community/postgrest-go"
 )
 
 // Config representa la configuración general del sistema, reexportada desde models
@@ -14,7 +15,18 @@ type Config = models.Config
 
 // NewConfig creates a new config instance
 func NewConfig() *Config {
-	return &Config{}
+	config := &Config{}
+
+	// Inicializar el cliente por defecto
+	if config.Supabase.URL != "" && config.Supabase.APIKey != "" {
+		client := postgrest.NewClient(config.Supabase.URL, "", map[string]string{
+			"apikey":        config.Supabase.APIKey,
+			"Authorization": "Bearer " + config.Supabase.ServiceKey,
+		})
+		config.Client = client
+	}
+
+	return config
 }
 
 // WithTimeout configures timeout settings
