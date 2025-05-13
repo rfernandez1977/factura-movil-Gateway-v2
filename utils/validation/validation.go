@@ -9,13 +9,13 @@ import (
 // ValidateFecha valida una fecha en formato string
 func ValidateFecha(fecha string) error {
 	if fecha == "" {
-		return models.NewValidationError("fecha", "REQUIRED_FIELD", "no puede estar vacía", nil)
+		return models.NewValidationFieldError("fecha", "REQUIRED_FIELD", "no puede estar vacía", nil)
 	}
 
 	// Intentar parsear la fecha
 	_, err := time.Parse("2006-01-02", fecha)
 	if err != nil {
-		return models.NewValidationError("fecha", "INVALID_FORMAT", "formato inválido (YYYY-MM-DD)", fecha)
+		return models.NewValidationFieldError("fecha", "INVALID_FORMAT", "formato inválido (YYYY-MM-DD)", fecha)
 	}
 
 	return nil
@@ -24,7 +24,7 @@ func ValidateFecha(fecha string) error {
 // ValidateMonto valida un monto
 func ValidateMonto(monto int) error {
 	if monto < 0 {
-		return models.NewValidationError("monto", "INVALID_VALUE", "debe ser mayor o igual a 0", monto)
+		return models.NewValidationFieldError("monto", "INVALID_VALUE", "debe ser mayor o igual a 0", monto)
 	}
 	return nil
 }
@@ -32,7 +32,7 @@ func ValidateMonto(monto int) error {
 // ValidatePorcentaje valida un porcentaje
 func ValidatePorcentaje(porcentaje int) error {
 	if porcentaje < 0 || porcentaje > 100 {
-		return models.NewValidationError("porcentaje", "INVALID_VALUE", "debe estar entre 0 y 100", porcentaje)
+		return models.NewValidationFieldError("porcentaje", "INVALID_VALUE", "debe estar entre 0 y 100", porcentaje)
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func ValidatePorcentaje(porcentaje int) error {
 // ValidateCantidad valida una cantidad
 func ValidateCantidad(cantidad float64) error {
 	if cantidad <= 0 {
-		return models.NewValidationError("cantidad", "INVALID_VALUE", "debe ser mayor a 0", cantidad)
+		return models.NewValidationFieldError("cantidad", "INVALID_VALUE", "debe ser mayor a 0", cantidad)
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func ValidateCantidad(cantidad float64) error {
 // ValidatePrecio valida un precio
 func ValidatePrecio(precio int) error {
 	if precio < 0 {
-		return models.NewValidationError("precio", "INVALID_VALUE", "debe ser mayor o igual a 0", precio)
+		return models.NewValidationFieldError("precio", "INVALID_VALUE", "debe ser mayor o igual a 0", precio)
 	}
 	return nil
 }

@@ -53,6 +53,11 @@ func (s *EmpresaService) GetEmpresaByID(id string) (*models.Empresa, error) {
 	return &empresa, nil
 }
 
+// ObtenerEmpresa obtiene una empresa por su ID (alias de GetEmpresaByID para compatibilidad)
+func (s *EmpresaService) ObtenerEmpresa(id string) (*models.Empresa, error) {
+	return s.GetEmpresaByID(id)
+}
+
 // CrearEmpresa crea una nueva empresa
 func (s *EmpresaService) CrearEmpresa(empresa *models.Empresa) (*models.Empresa, error) {
 	// Validar empresa
@@ -109,23 +114,23 @@ func (s *EmpresaService) EliminarEmpresa(id string) error {
 
 // validarEmpresa valida una empresa antes de crearla o actualizarla
 func (s *EmpresaService) validarEmpresa(empresa *models.Empresa) error {
-	if empresa.Rut == "" {
+	if empresa.RUT == "" {
 		return fmt.Errorf("RUT requerido")
 	}
-	if empresa.RazonSocial == "" {
-		return fmt.Errorf("razón social requerida")
-	}
-	if empresa.Giro == "" {
-		return fmt.Errorf("giro requerido")
+	if empresa.Nombre == "" {
+		return fmt.Errorf("nombre requerido")
 	}
 	if empresa.Direccion == "" {
 		return fmt.Errorf("dirección requerida")
 	}
-	if empresa.Comuna == "" {
-		return fmt.Errorf("comuna requerida")
+	if empresa.Email == "" {
+		return fmt.Errorf("email requerido")
 	}
-	if empresa.Ciudad == "" {
-		return fmt.Errorf("ciudad requerida")
+	if empresa.RUTFirma == "" {
+		return fmt.Errorf("RUT firma requerido")
+	}
+	if empresa.NombreFirma == "" {
+		return fmt.Errorf("nombre firma requerido")
 	}
 	return nil
 }

@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Usuario representa un usuario del sistema
@@ -79,16 +81,26 @@ type DatosEncriptados struct {
 	FechaModificacion time.Time `json:"fecha_modificacion" bson:"fecha_modificacion"`
 }
 
+// RegistroAcceso representa un registro de acceso al sistema
+type RegistroAcceso struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	UsuarioID primitive.ObjectID `json:"usuario_id" bson:"usuario_id"`
+	IP        string             `json:"ip" bson:"ip"`
+	Fecha     time.Time          `json:"fecha" bson:"fecha"`
+	Exitoso   bool               `json:"exitoso" bson:"exitoso"`
+	Metodo    string             `json:"metodo" bson:"metodo"`
+}
+
 // ReporteSeguridad representa un reporte de seguridad
 type ReporteSeguridad struct {
-	ID                 string            `json:"id" bson:"_id"`
-	FechaInicio        time.Time         `json:"fecha_inicio" bson:"fecha_inicio"`
-	FechaFin           time.Time         `json:"fecha_fin" bson:"fecha_fin"`
-	AccesosFallidos    int               `json:"accesos_fallidos" bson:"accesos_fallidos"`
-	UsuariosBloqueados int               `json:"usuarios_bloqueados" bson:"usuarios_bloqueados"`
-	FirmasRevocadas    int               `json:"firmas_revocadas" bson:"firmas_revocadas"`
-	AlertasSeguridad   []AlertaSeguridad `json:"alertas_seguridad" bson:"alertas_seguridad"`
-	FechaGeneracion    time.Time         `json:"fecha_generacion" bson:"fecha_generacion"`
+	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	PeriodoInicio   time.Time          `json:"periodo_inicio" bson:"periodo_inicio"`
+	PeriodoFin      time.Time          `json:"periodo_fin" bson:"periodo_fin"`
+	TotalAccesos    int                `json:"total_accesos" bson:"total_accesos"`
+	AccesosExitosos int                `json:"accesos_exitosos" bson:"accesos_exitosos"`
+	AccesosFallidos int                `json:"accesos_fallidos" bson:"accesos_fallidos"`
+	IntentosPorIP   map[string]int     `json:"intentos_por_ip" bson:"intentos_por_ip"`
+	FechaGeneracion time.Time          `json:"fecha_generacion" bson:"fecha_generacion"`
 }
 
 // AlertaSeguridad representa una alerta de seguridad

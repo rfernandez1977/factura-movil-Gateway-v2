@@ -215,11 +215,11 @@ func (v *FacturaValidator) ValidateBusinessRules() error {
 // BoletaValidator implementa la validación específica para boletas
 type BoletaValidator struct {
 	*BaseDocumentValidator
-	boleta *models.Boleta
+	boleta *models.BoletaElectronica
 }
 
 // NewBoletaValidator crea una nueva instancia de BoletaValidator
-func NewBoletaValidator(boleta *models.Boleta) *BoletaValidator {
+func NewBoletaValidator(boleta *models.BoletaElectronica) *BoletaValidator {
 	// Convertir de DocumentoTributario a models.DocumentoTributario
 	modelDoc := &models.DocumentoTributario{
 		ID:           boleta.ID,

@@ -77,16 +77,16 @@ func NewDocumento(empresaID, tipoDocumento, numeroDocumento, fechaEmision string
 // Validate valida que todos los campos obligatorios estén presentes
 func (d *Documento) Validate() error {
 	if d.EmpresaID == "" {
-		return ValidationError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
+		return &ValidationFieldError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
 	}
 	if d.TipoDocumento == "" {
-		return ValidationError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
+		return &ValidationFieldError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
 	}
 	if d.NumeroDocumento == "" {
-		return ValidationError{Field: "numero_documento", Message: "El número de documento es obligatorio"}
+		return &ValidationFieldError{Field: "numero_documento", Message: "El número de documento es obligatorio"}
 	}
 	if d.FechaEmision == "" {
-		return ValidationError{Field: "fecha_emision", Message: "La fecha de emisión es obligatoria"}
+		return &ValidationFieldError{Field: "fecha_emision", Message: "La fecha de emisión es obligatoria"}
 	}
 	return nil
 }

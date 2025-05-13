@@ -13,7 +13,7 @@ const (
 	// Factura Exenta Electrónica
 	FacturaExentaElectronica TipoDTE = 34
 	// Boleta Electrónica
-	BoletaElectronica TipoDTE = 39
+	BoletaElectronicaTipo TipoDTE = 39
 	// Boleta Exenta Electrónica
 	BoletaExentaElectronica TipoDTE = 41
 	// Liquidación Factura Electrónica
@@ -33,7 +33,7 @@ func (t TipoDTE) String() string {
 		return "FACTURA ELECTRÓNICA"
 	case FacturaExentaElectronica:
 		return "FACTURA EXENTA ELECTRÓNICA"
-	case BoletaElectronica:
+	case BoletaElectronicaTipo:
 		return "BOLETA ELECTRÓNICA"
 	case BoletaExentaElectronica:
 		return "BOLETA EXENTA ELECTRÓNICA"
@@ -71,7 +71,7 @@ func FromString(s string) TipoDTE {
 	case "FACTURA":
 		return FacturaElectronica
 	case "BOLETA":
-		return BoletaElectronica
+		return BoletaElectronicaTipo
 	case "NOTA_CREDITO":
 		return NotaCreditoElectronica
 	case "NOTA_DEBITO":

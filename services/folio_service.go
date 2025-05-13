@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cursor/FMgo/models"
 	"github.com/go-redis/redis/v8"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/wcharczuk/go-chart"
@@ -486,12 +487,10 @@ func (s *FolioService) solicitarNuevoCAF(ctx context.Context, rutEmisor string, 
 	}
 
 	// Solicitar nuevo CAF
-	req := &CAFRequest{
-		RUTEmisor:      rutEmisor,
-		TipoDTE:        tipoDTE,
-		FolioInicial:   folioInicial,
-		FolioFinal:     folioInicial + 999, // Solicitar 1000 folios
-		FechaSolicitud: time.Now(),
+	req := &models.CAFRequest{
+		TipoDocumento: tipoDTE,
+		RutEmisor:     rutEmisor,
+		Cantidad:      1000, // Solicitar 1000 folios
 	}
 
 	// Iniciar monitoreo en segundo plano
@@ -506,9 +505,12 @@ func (s *FolioService) solicitarNuevoCAF(ctx context.Context, rutEmisor string, 
 }
 
 // monitorearSolicitudCAF monitorea el estado de una solicitud de CAF
-func (s *FolioService) monitorearSolicitudCAF(ctx context.Context, req *CAFRequest) {
+func (s *FolioService) monitorearSolicitudCAF(ctx context.Context, req *models.CAFRequest) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
+
+	// Crear un ID de seguimiento local para esta solicitud
+	trackID := fmt.Sprintf("%s-%s-%d", req.RutEmisor, req.TipoDocumento, time.Now().Unix())
 
 	for {
 		select {
@@ -516,7 +518,7 @@ func (s *FolioService) monitorearSolicitudCAF(ctx context.Context, req *CAFReque
 			return
 		case <-ticker.C:
 			// Verificar estado de la solicitud
-			estado, err := s.cafService.ConsultarEstadoCAF(ctx, req.TrackID)
+			estado, err := s.cafService.ConsultarEstadoCAF(ctx, trackID)
 			if err != nil {
 				continue
 			}
@@ -524,7 +526,7 @@ func (s *FolioService) monitorearSolicitudCAF(ctx context.Context, req *CAFReque
 			switch estado {
 			case "ACEPTADO":
 				// Descargar y registrar el nuevo CAF
-				if err := s.procesarNuevoCAF(ctx, req); err != nil {
+				if err := s.procesarNuevoCAF(ctx, req, trackID); err != nil {
 					// TODO: Implementar manejo de errores
 					continue
 				}
@@ -538,19 +540,19 @@ func (s *FolioService) monitorearSolicitudCAF(ctx context.Context, req *CAFReque
 }
 
 // procesarNuevoCAF procesa un nuevo CAF recibido
-func (s *FolioService) procesarNuevoCAF(ctx context.Context, req *CAFRequest) error {
+func (s *FolioService) procesarNuevoCAF(ctx context.Context, req *models.CAFRequest, trackID string) error {
 	// Descargar el CAF
-	metadata, err := s.cafService.DescargarCAF(ctx, req.TrackID)
+	metadata, err := s.cafService.DescargarCAF(ctx, trackID)
 	if err != nil {
 		return fmt.Errorf("error descargando CAF: %v", err)
 	}
 
 	// Registrar el nuevo rango de folios
 	rango := RangoFolios{
-		RUTEmisor:         req.RUTEmisor,
-		TipoDTE:           req.TipoDTE,
-		FolioInicial:      req.FolioInicial,
-		FolioFinal:        req.FolioFinal,
+		RUTEmisor:         req.RutEmisor,
+		TipoDTE:           req.TipoDocumento,
+		FolioInicial:      metadata.FolioInicial,
+		FolioFinal:        metadata.FolioFinal,
 		CAFID:             metadata.CAFID,
 		FechaAutorizacion: metadata.FechaAutorizacion,
 		FechaVencimiento:  metadata.FechaVencimiento,

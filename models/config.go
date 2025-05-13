@@ -138,6 +138,7 @@ type Config struct {
 // ConfiguracionSII representa la configuración específica para la integración con el SII
 type ConfiguracionSII struct {
 	ID              string    `json:"id"`
+	EmpresaID       string    `json:"empresa_id"`
 	RUTEmisor       string    `json:"rutEmisor"`
 	CertificadoPath string    `json:"certificadoPath"`
 	ClavePrivada    string    `json:"clavePrivada"`
@@ -191,6 +192,7 @@ func NewConfig() *Config {
 func NewConfiguracionSII(rutEmisor, certificadoPath, clavePrivada, ambiente string) *ConfiguracionSII {
 	return &ConfiguracionSII{
 		ID:              GenerateID(),
+		EmpresaID:       "",
 		RUTEmisor:       rutEmisor,
 		CertificadoPath: certificadoPath,
 		ClavePrivada:    clavePrivada,

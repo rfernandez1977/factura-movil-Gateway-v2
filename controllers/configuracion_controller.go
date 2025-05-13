@@ -4,22 +4,24 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cursor/FMgo/models"
 	"github.com/cursor/FMgo/services"
 	"github.com/cursor/FMgo/utils"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 // ConfiguracionController maneja las peticiones HTTP relacionadas con configuración
 type ConfiguracionController struct {
 	configuracionService *services.ConfiguracionService
+	logger               *zap.Logger
 }
 
 // NewConfiguracionController crea una nueva instancia del controlador de configuración
-func NewConfiguracionController(configuracionService *services.ConfiguracionService) *ConfiguracionController {
+func NewConfiguracionController(configuracionService *services.ConfiguracionService, logger *zap.Logger) *ConfiguracionController {
 	return &ConfiguracionController{
 		configuracionService: configuracionService,
+		logger:               logger,
 	}
 }
 
@@ -33,7 +35,9 @@ func (c *ConfiguracionController) ObtenerConfiguracion(ctx *gin.Context) {
 
 	configuracion, err := c.configuracionService.ObtenerConfiguracion(empresaID)
 	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "ObtenerConfiguracion"))
+		c.logger.Error("Error al obtener configuración",
+			zap.String("empresaID", empresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -47,18 +51,21 @@ func (c *ConfiguracionController) ActualizarConfiguracion(ctx *gin.Context) {
 
 	var configuracion models.Configuracion
 	if err := ctx.ShouldBindJSON(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracion"))
+		c.logger.Error("Error al vincular JSON",
+			zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.configuracionService.ActualizarConfiguracion(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracion"))
+		c.logger.Error("Error al actualizar configuración",
+			zap.String("empresaID", configuracion.EmpresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	utils.LogInfo("configuración actualizada exitosamente",
+	c.logger.Info("Configuración actualizada exitosamente",
 		zap.String("empresa_id", configuracion.EmpresaID),
 	)
 
@@ -85,7 +92,9 @@ func (c *ConfiguracionController) ObtenerConfiguracionSII(ctx *gin.Context) {
 
 	configuracion, err := c.configuracionService.ObtenerConfiguracionSII(empresaID)
 	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "ObtenerConfiguracionSII"))
+		c.logger.Error("Error al obtener configuración SII",
+			zap.String("empresaID", empresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -95,20 +104,23 @@ func (c *ConfiguracionController) ObtenerConfiguracionSII(ctx *gin.Context) {
 
 // ActualizarConfiguracionSII maneja la actualización de la configuración del SII
 func (c *ConfiguracionController) ActualizarConfiguracionSII(ctx *gin.Context) {
-	var configuracion models.ConfiguracionSII
+	var configuracion models.ConfiguracionSIIEmpresa
 	if err := ctx.ShouldBindJSON(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracionSII"))
+		c.logger.Error("Error al vincular JSON",
+			zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.configuracionService.ActualizarConfiguracionSII(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracionSII"))
+		c.logger.Error("Error al actualizar configuración SII",
+			zap.String("empresaID", configuracion.EmpresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	utils.LogInfo("configuración SII actualizada exitosamente",
+	c.logger.Info("Configuración SII actualizada exitosamente",
 		zap.String("empresa_id", configuracion.EmpresaID),
 	)
 
@@ -125,7 +137,9 @@ func (c *ConfiguracionController) ObtenerConfiguracionEmail(ctx *gin.Context) {
 
 	configuracion, err := c.configuracionService.ObtenerConfiguracionEmail(empresaID)
 	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "ObtenerConfiguracionEmail"))
+		c.logger.Error("Error al obtener configuración de email",
+			zap.String("empresaID", empresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -137,18 +151,21 @@ func (c *ConfiguracionController) ObtenerConfiguracionEmail(ctx *gin.Context) {
 func (c *ConfiguracionController) ActualizarConfiguracionEmail(ctx *gin.Context) {
 	var configuracion models.ConfiguracionEmail
 	if err := ctx.ShouldBindJSON(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracionEmail"))
+		c.logger.Error("Error al vincular JSON",
+			zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.configuracionService.ActualizarConfiguracionEmail(&configuracion); err != nil {
-		utils.LogError(err, zap.String("endpoint", "ActualizarConfiguracionEmail"))
+		c.logger.Error("Error al actualizar configuración de email",
+			zap.String("empresaID", configuracion.EmpresaID),
+			zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	utils.LogInfo("configuración email actualizada exitosamente",
+	c.logger.Info("Configuración de email actualizada exitosamente",
 		zap.String("empresa_id", configuracion.EmpresaID),
 	)
 

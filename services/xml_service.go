@@ -17,7 +17,7 @@ import (
 // Constantes para tipos de documento
 const (
 	TipoDTEFactura      = models.FacturaElectronica
-	TipoDTEBoleta       = models.BoletaElectronica
+	TipoDTEBoleta       = models.BoletaElectronicaTipo
 	TipoDTEGuiaDespacho = models.GuiaDespachoElectronica
 	TipoDTENotaDebito   = models.NotaDebitoElectronica
 	TipoDTENotaCredito  = models.NotaCreditoElectronica

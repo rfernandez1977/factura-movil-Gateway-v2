@@ -33,8 +33,8 @@ func NewDocumentoTributario(tipoDTE string, folio int, fechaEmision time.Time) *
 	}
 }
 
-func NewDocumento(tipo, nombre, descripcion string, contenido []byte, mimeType string) *Documento {
-	return &Documento{
+func CreateDocumento(tipo, nombre, descripcion string, contenido []byte, mimeType string) *DocumentoGenerico {
+	return &DocumentoGenerico{
 		ID:          GenerateID(),
 		Tipo:        tipo,
 		Nombre:      nombre,

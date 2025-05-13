@@ -13,7 +13,7 @@ import (
 // ValidateRUT valida un RUT chileno
 func ValidateRUT(rut string) error {
 	if rut == "" {
-		return models.NewValidationError("RUT", "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return models.NewValidationFieldError("RUT", "REQUIRED_FIELD", "no puede estar vacío", nil)
 	}
 
 	// Eliminar puntos y guión
@@ -23,7 +23,7 @@ func ValidateRUT(rut string) error {
 	// Validar formato
 	re := regexp.MustCompile(`^\d{1,8}[0-9kK]$`)
 	if !re.MatchString(rut) {
-		return models.NewValidationError("RUT", "formato inválido", "INVALID_FORMAT", rut)
+		return models.NewValidationFieldError("RUT", "INVALID_FORMAT", "formato inválido", rut)
 	}
 
 	// Separar número y dígito verificador
@@ -55,7 +55,7 @@ func ValidateRUT(rut string) error {
 
 	// Comparar dígito verificador
 	if dv != dvCalculado {
-		return models.NewValidationError("RUT", "dígito verificador inválido", "INVALID_CHECK_DIGIT", rut)
+		return models.NewValidationFieldError("RUT", "INVALID_CHECK_DIGIT", "dígito verificador inválido", rut)
 	}
 
 	return nil
@@ -64,12 +64,12 @@ func ValidateRUT(rut string) error {
 // ValidateEmail valida un correo electrónico
 func ValidateEmail(email string) error {
 	if email == "" {
-		return models.NewValidationError("Email", "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return models.NewValidationFieldError("Email", "REQUIRED_FIELD", "no puede estar vacío", nil)
 	}
 
 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if !re.MatchString(email) {
-		return models.NewValidationError("Email", "formato inválido", "INVALID_FORMAT", email)
+		return models.NewValidationFieldError("Email", "INVALID_FORMAT", "formato inválido", email)
 	}
 
 	return nil
@@ -78,7 +78,7 @@ func ValidateEmail(email string) error {
 // ValidateDate valida una fecha
 func ValidateDate(date time.Time, fieldName string) error {
 	if date.IsZero() {
-		return models.NewValidationError(fieldName, "no puede estar vacía", "REQUIRED_FIELD", nil)
+		return models.NewValidationFieldError(fieldName, "REQUIRED_FIELD", "no puede estar vacía", nil)
 	}
 	return nil
 }
@@ -90,16 +90,16 @@ func ValidateDateRange(date, minDate, maxDate time.Time, fieldName string) error
 	}
 
 	if date.Before(minDate) {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("no puede ser anterior a %s", minDate.Format("2006-01-02")),
+		return models.NewValidationFieldError(fieldName,
 			"DATE_BEFORE_MIN",
+			fmt.Sprintf("no puede ser anterior a %s", minDate.Format("2006-01-02")),
 			date.Format("2006-01-02"))
 	}
 
 	if date.After(maxDate) {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("no puede ser posterior a %s", maxDate.Format("2006-01-02")),
+		return models.NewValidationFieldError(fieldName,
 			"DATE_AFTER_MAX",
+			fmt.Sprintf("no puede ser posterior a %s", maxDate.Format("2006-01-02")),
 			date.Format("2006-01-02"))
 	}
 
@@ -109,20 +109,20 @@ func ValidateDateRange(date, minDate, maxDate time.Time, fieldName string) error
 // ValidateText valida un texto
 func ValidateText(text string, minLength, maxLength int, fieldName string) error {
 	if text == "" {
-		return models.NewValidationError(fieldName, "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return models.NewValidationFieldError(fieldName, "REQUIRED_FIELD", "no puede estar vacío", nil)
 	}
 
 	length := len(strings.TrimSpace(text))
 	if length < minLength {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("debe tener al menos %d caracteres", minLength),
+		return models.NewValidationFieldError(fieldName,
 			"TEXT_TOO_SHORT",
+			fmt.Sprintf("debe tener al menos %d caracteres", minLength),
 			text)
 	}
 	if length > maxLength {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("no debe exceder %d caracteres", maxLength),
+		return models.NewValidationFieldError(fieldName,
 			"TEXT_TOO_LONG",
+			fmt.Sprintf("no debe exceder %d caracteres", maxLength),
 			text)
 	}
 
@@ -132,15 +132,15 @@ func ValidateText(text string, minLength, maxLength int, fieldName string) error
 // ValidateNumber valida un número
 func ValidateNumber(number int, min, max int, fieldName string) error {
 	if number < min {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("debe ser mayor o igual a %d", min),
+		return models.NewValidationFieldError(fieldName,
 			"NUMBER_BELOW_MIN",
+			fmt.Sprintf("debe ser mayor o igual a %d", min),
 			number)
 	}
 	if number > max {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("debe ser menor o igual a %d", max),
+		return models.NewValidationFieldError(fieldName,
 			"NUMBER_ABOVE_MAX",
+			fmt.Sprintf("debe ser menor o igual a %d", max),
 			number)
 	}
 	return nil
@@ -149,15 +149,15 @@ func ValidateNumber(number int, min, max int, fieldName string) error {
 // ValidateList valida una lista
 func ValidateList(list []string, minLength, maxLength int, fieldName string) error {
 	if len(list) < minLength {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("debe tener al menos %d elementos", minLength),
+		return models.NewValidationFieldError(fieldName,
 			"LIST_TOO_SHORT",
+			fmt.Sprintf("debe tener al menos %d elementos", minLength),
 			list)
 	}
 	if len(list) > maxLength {
-		return models.NewValidationError(fieldName,
-			fmt.Sprintf("no debe exceder %d elementos", maxLength),
+		return models.NewValidationFieldError(fieldName,
 			"LIST_TOO_LONG",
+			fmt.Sprintf("no debe exceder %d elementos", maxLength),
 			list)
 	}
 	return nil

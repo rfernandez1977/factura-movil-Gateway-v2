@@ -43,7 +43,7 @@ func NewOrchestrationService(db *mongo.Database) *OrchestrationService {
 // EjecutarFlujo ejecuta un flujo de trabajo
 func (s *OrchestrationService) EjecutarFlujo(ctx context.Context, flujo *models.FlujoIntegracion) error {
 	// Iniciar el flujo
-	flujo.Estado = models.EstadoFlujoEnProgreso
+	flujo.Estado = string(models.EstadoFlujoEnProgreso)
 	flujo.FechaInicio = time.Now()
 
 	// Guardar el estado inicial
@@ -55,7 +55,7 @@ func (s *OrchestrationService) EjecutarFlujo(ctx context.Context, flujo *models.
 	for i, paso := range flujo.Pasos {
 		// Actualizar el paso actual
 		flujo.PasoActual = i
-		flujo.Pasos[i].Estado = models.EstadoPasoEnProgreso
+		flujo.Pasos[i].Estado = string(models.EstadoPasoProcesando)
 		flujo.Pasos[i].FechaInicio = time.Now()
 
 		if err := s.guardarFlujo(ctx, flujo); err != nil {
@@ -70,7 +70,7 @@ func (s *OrchestrationService) EjecutarFlujo(ctx context.Context, flujo *models.
 					return err
 				}
 			} else if paso.ManejoError == models.ManejoErrorDetener {
-				flujo.Estado = models.EstadoFlujoError
+				flujo.Estado = string(models.EstadoFlujoError)
 				flujo.Error = err.Error()
 				s.guardarFlujo(ctx, flujo)
 				return err
@@ -78,12 +78,12 @@ func (s *OrchestrationService) EjecutarFlujo(ctx context.Context, flujo *models.
 		}
 
 		// Actualizar el estado del paso
-		flujo.Pasos[i].Estado = models.EstadoPasoCompletado
+		flujo.Pasos[i].Estado = string(models.EstadoPasoCompletado)
 		flujo.Pasos[i].FechaFin = time.Now()
 	}
 
 	// Completar el flujo
-	flujo.Estado = models.EstadoFlujoCompletado
+	flujo.Estado = string(models.EstadoFlujoCompletado)
 	flujo.FechaFin = time.Now()
 	return s.guardarFlujo(ctx, flujo)
 }
@@ -154,13 +154,16 @@ func (s *OrchestrationService) guardarFlujo(ctx context.Context, flujo *models.F
 // agregarReintento agrega un elemento a la cola de reintentos
 func (s *OrchestrationService) agregarReintento(ctx context.Context, flujo *models.FlujoIntegracion, paso *models.PasoFlujo, err error) error {
 	reintento := &models.ColaReintentos{
-		ID:            primitive.NewObjectID(),
-		FlujoID:       flujo.ID,
-		PasoID:        paso.ID,
-		Intento:       paso.Intentos + 1,
-		Error:         err.Error(),
-		Estado:        models.EstadoReintentoPendiente,
-		FechaCreacion: time.Now(),
+		ID:             paso.ID.Hex(),
+		WorkflowID:     flujo.ID.Hex(),
+		PasoID:         paso.ID.Hex(),
+		Estado:         models.EstadoReintentoPendiente,
+		NumeroIntento:  paso.Intentos + 1,
+		TiempoRetardo:  30, // Valor por defecto, podría ser configurable
+		UltimoError:    err.Error(),
+		ProximoIntento: time.Now().Add(30 * time.Second), // Retrasar 30 segundos
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	collection := s.db.Collection("cola_reintentos")

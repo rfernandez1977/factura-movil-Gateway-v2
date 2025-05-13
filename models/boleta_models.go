@@ -2,8 +2,8 @@ package models
 
 import "time"
 
-// Boleta representa una boleta electrónica
-type Boleta struct {
+// BoletaElectronica representa una boleta electrónica
+type BoletaElectronica struct {
 	DocumentoTributario
 	CAF               *CAF   `json:"caf,omitempty" bson:"caf,omitempty"`
 	TimbreElectronico string `json:"timbre_electronico,omitempty" bson:"timbre_electronico,omitempty"`
@@ -18,8 +18,8 @@ type Boleta struct {
 	Vendedor             string              `json:"vendedor" bson:"vendedor"`
 }
 
-// BoletaRequest representa una solicitud de boleta
-type BoletaRequest struct {
+// SolicitudBoleta representa una solicitud de boleta
+type SolicitudBoleta struct {
 	TipoDTE           TipoDTE   `json:"tipo_dte"`
 	Folio             int       `json:"folio"`
 	FechaEmision      time.Time `json:"fecha_emision"`

@@ -49,8 +49,8 @@ type DetalleRequest struct {
 	Precio      float64 `json:"precio" binding:"required,gte=0"`
 }
 
-// EstadoDocumento representa el estado de un documento en el SII
-type EstadoDocumento struct {
+// EstadoDocumentoSII representa el estado de un documento en el SII
+type EstadoDocumentoSII struct {
 	TrackID         string    `json:"track_id"`
 	Estado          string    `json:"estado"`
 	Glosa           string    `json:"glosa"`

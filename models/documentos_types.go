@@ -40,8 +40,8 @@ type DocumentoTributario struct {
 	Timestamps
 }
 
-// Documento representa un documento genérico en el sistema
-type Documento struct {
+// DocumentoGenerico representa un documento genérico en el sistema
+type DocumentoGenerico struct {
 	ID          string     `json:"id" bson:"_id,omitempty"`
 	Tipo        string     `json:"tipo" bson:"tipo"`
 	Nombre      string     `json:"nombre" bson:"nombre"`

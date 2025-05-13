@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// ValidationError representa un error de validación
-type ValidationError struct {
+// ValidationFieldError representa un error de validación
+type ValidationFieldError struct {
 	ID        string      `json:"id" bson:"id"`
 	Field     string      `json:"field" bson:"field"`
 	Code      string      `json:"code" bson:"code"`
@@ -17,7 +17,7 @@ type ValidationError struct {
 	Timestamp time.Time   `json:"timestamp" bson:"timestamp"`
 }
 
-func (e *ValidationError) Error() string {
+func (e *ValidationFieldError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Message)
 }
 
@@ -28,11 +28,11 @@ type Validator interface {
 
 // BaseValidator estructura base para validaciones
 type BaseValidator struct {
-	errors []*ValidationError
+	errors []*ValidationFieldError
 }
 
 func (v *BaseValidator) AddError(field, message, code string, value ...string) {
-	err := &ValidationError{
+	err := &ValidationFieldError{
 		Field:   field,
 		Message: message,
 		Code:    code,
@@ -47,7 +47,7 @@ func (v *BaseValidator) HasErrors() bool {
 	return len(v.errors) > 0
 }
 
-func (v *BaseValidator) GetErrors() []*ValidationError {
+func (v *BaseValidator) GetErrors() []*ValidationFieldError {
 	return v.errors
 }
 
@@ -112,12 +112,12 @@ type ValidationRequest struct {
 
 // ValidationResponse representa la respuesta de una validación
 type ValidationResponse struct {
-	ID          string             `json:"id" bson:"_id,omitempty"`
-	DocumentoID string             `json:"documento_id" bson:"documento_id"`
-	Exitoso     bool               `json:"exitoso" bson:"exitoso"`
-	Resultados  []ValidationResult `json:"resultados" bson:"resultados"`
-	Errores     []ValidationError  `json:"errores" bson:"errores"`
-	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
+	ID          string                 `json:"id" bson:"_id,omitempty"`
+	DocumentoID string                 `json:"documento_id" bson:"documento_id"`
+	Exitoso     bool                   `json:"exitoso" bson:"exitoso"`
+	Resultados  []ValidationResult     `json:"resultados" bson:"resultados"`
+	Errores     []ValidationFieldError `json:"errores" bson:"errores"`
+	CreatedAt   time.Time              `json:"created_at" bson:"created_at"`
 }
 
 // ValidationMetadata representa metadatos de validación
@@ -180,9 +180,9 @@ func NewValidationConfig(tipo string, reglas []ValidationRule, maxErrores int, s
 	}
 }
 
-// NewValidationError crea un nuevo error de validación
-func NewValidationError(field, code, message string, value interface{}) *ValidationError {
-	return &ValidationError{
+// NewValidationFieldError crea un nuevo error de validación
+func NewValidationFieldError(field, code, message string, value interface{}) *ValidationFieldError {
+	return &ValidationFieldError{
 		ID:        uuid.New().String(),
 		Field:     field,
 		Code:      code,
@@ -195,13 +195,13 @@ func NewValidationError(field, code, message string, value interface{}) *Validat
 // Validate implementa la interfaz Validator para ValidationRule
 func (r *ValidationRule) Validate() error {
 	if r.Nombre == "" {
-		return NewValidationError("nombre", "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return NewValidationFieldError("nombre", "no puede estar vacío", "REQUIRED_FIELD", nil)
 	}
 	if r.Tipo == "" {
-		return NewValidationError("tipo", "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return NewValidationFieldError("tipo", "no puede estar vacío", "REQUIRED_FIELD", nil)
 	}
 	if r.Expresion == "" {
-		return NewValidationError("expresion", "no puede estar vacía", "REQUIRED_FIELD", nil)
+		return NewValidationFieldError("expresion", "no puede estar vacía", "REQUIRED_FIELD", nil)
 	}
 	return nil
 }
@@ -209,13 +209,13 @@ func (r *ValidationRule) Validate() error {
 // Validate implementa la interfaz Validator para ValidationConfig
 func (c *ValidationConfig) Validate() error {
 	if c.Tipo == "" {
-		return NewValidationError("tipo", "no puede estar vacío", "REQUIRED_FIELD", nil)
+		return NewValidationFieldError("tipo", "no puede estar vacío", "REQUIRED_FIELD", nil)
 	}
 	if len(c.Reglas) == 0 {
-		return NewValidationError("reglas", "debe contener al menos una regla", "REQUIRED_FIELD", nil)
+		return NewValidationFieldError("reglas", "debe contener al menos una regla", "REQUIRED_FIELD", nil)
 	}
 	if c.MaxErrores <= 0 {
-		return NewValidationError("max_errores", "debe ser mayor que 0", "INVALID_VALUE", nil)
+		return NewValidationFieldError("max_errores", "debe ser mayor que 0", "INVALID_VALUE", nil)
 	}
 	return nil
 }

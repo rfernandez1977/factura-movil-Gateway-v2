@@ -8,6 +8,7 @@ import (
 
 	"github.com/cursor/FMgo/config"
 	"github.com/cursor/FMgo/models"
+	"github.com/cursor/FMgo/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -16,7 +17,7 @@ import (
 type SesionService struct {
 	config *config.SupabaseConfig
 	db     *mongo.Database
-	client *SIIClient
+	client *SesionSIIClient
 }
 
 // NewSesionService crea una nueva instancia del servicio de sesiones
@@ -24,7 +25,7 @@ func NewSesionService(config *config.SupabaseConfig, db *mongo.Database) *Sesion
 	return &SesionService{
 		config: config,
 		db:     db,
-		client: NewSIIClient(config),
+		client: NewSesionSIIClient(config),
 	}
 }
 
@@ -122,7 +123,7 @@ func (s *SesionService) ObtenerSesionActiva(ctx context.Context, empresaID strin
 }
 
 // VerificarEstadoSesion verifica el estado de una sesión
-func (s *SesionService) VerificarEstadoSesion(ctx context.Context, sesionID string) (*models.EstadoSesion, error) {
+func (s *SesionService) VerificarEstadoSesion(ctx context.Context, sesionID string) (*models.EstadoSesionInfo, error) {
 	// Obtener sesión
 	var sesion models.SesionElectronica
 	err := s.db.Collection("sesiones").FindOne(ctx, bson.M{"_id": sesionID}).Decode(&sesion)
@@ -203,7 +204,7 @@ func (s *SesionService) LimpiarSesionesExpiradas(ctx context.Context) error {
 // VerificarToken verifica si un token de sesión es válido
 func (s *SesionService) VerificarToken(token string) (bool, error) {
 	// Crear request HTTP
-	req, err := http.NewRequest("GET", s.config.GetSiiEndpoint()+"/sesion/verificar", nil)
+	req, err := http.NewRequest("GET", utils.GetSiiEndpoint(s.config)+"/sesion/verificar", nil)
 	if err != nil {
 		return false, fmt.Errorf("error al crear request: %v", err)
 	}
@@ -213,7 +214,10 @@ func (s *SesionService) VerificarToken(token string) (bool, error) {
 	req.Header.Set("User-Agent", "FMgo/1.0")
 
 	// Enviar request usando el cliente HTTP
-	resp, err := s.client.httpClient.Do(req)
+	httpClient := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("error al enviar request: %v", err)
 	}

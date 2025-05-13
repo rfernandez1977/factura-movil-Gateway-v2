@@ -69,22 +69,22 @@ func NewCAF(empresaID, tipoDocumento string, desde, hasta int, archivo []byte, f
 // Validate valida que todos los campos obligatorios estén presentes
 func (c *CAF) Validate() error {
 	if c.EmpresaID == "" {
-		return &ValidationError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
+		return &ValidationFieldError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
 	}
 	if c.TipoDocumento == "" {
-		return &ValidationError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
+		return &ValidationFieldError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
 	}
 	if c.Desde <= 0 {
-		return &ValidationError{Field: "desde", Message: "El rango inicial debe ser mayor a cero"}
+		return &ValidationFieldError{Field: "desde", Message: "El rango inicial debe ser mayor a cero"}
 	}
 	if c.Hasta <= 0 {
-		return &ValidationError{Field: "hasta", Message: "El rango final debe ser mayor a cero"}
+		return &ValidationFieldError{Field: "hasta", Message: "El rango final debe ser mayor a cero"}
 	}
 	if c.Hasta < c.Desde {
-		return &ValidationError{Field: "hasta", Message: "El rango final debe ser mayor o igual al rango inicial"}
+		return &ValidationFieldError{Field: "hasta", Message: "El rango final debe ser mayor o igual al rango inicial"}
 	}
 	if c.Archivo == nil || len(c.Archivo) == 0 {
-		return &ValidationError{Field: "archivo", Message: "El archivo del CAF es obligatorio"}
+		return &ValidationFieldError{Field: "archivo", Message: "El archivo del CAF es obligatorio"}
 	}
 	return nil
 }

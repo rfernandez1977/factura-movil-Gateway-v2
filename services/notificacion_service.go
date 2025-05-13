@@ -11,12 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // NotificacionService maneja el sistema de notificaciones
 type NotificacionService struct {
 	db                 *mongo.Database
-	config             *models.ConfiguracionNotificacion
+	config             *models.SistemaNotificaciones
 	emailService       *EmailService
 	smsService         *SMSService
 	pushService        *PushService
@@ -31,7 +32,7 @@ func NewNotificacionService(db *mongo.Database, emailService *EmailService, smsS
 		smsService:         smsService,
 		pushService:        pushService,
 		colaNotificaciones: make(chan *models.Notificacion, 1000),
-		config: &models.ConfiguracionNotificacion{
+		config: &models.SistemaNotificaciones{
 			MaxIntentosEnvio:   3,
 			IntervaloReintento: 5 * time.Minute,
 			NotificarEmail:     true,
@@ -258,10 +259,11 @@ func (s *NotificacionService) MarcarComoLeida(id string) error {
 
 // ObtenerNotificacionesUsuario obtiene las notificaciones de un usuario
 func (s *NotificacionService) ObtenerNotificacionesUsuario(usuarioID string, limit int) ([]*models.Notificacion, error) {
+	options := options.Find().SetLimit(int64(limit)).SetSort(bson.M{"fecha_creacion": -1})
 	cursor, err := s.db.Collection("notificaciones").Find(
 		context.Background(),
 		bson.M{"usuario_id": usuarioID},
-		bson.M{"limit": limit, "sort": bson.M{"fecha_creacion": -1}},
+		options,
 	)
 	if err != nil {
 		return nil, err
@@ -300,11 +302,12 @@ func (s *NotificacionService) ObtenerNotificacionesPendientes(usuarioID string) 
 
 // ActualizarPreferenciasUsuario actualiza las preferencias de notificación de un usuario
 func (s *NotificacionService) ActualizarPreferenciasUsuario(preferencias *models.PreferenciasNotificacion) error {
+	options := options.Update().SetUpsert(true)
 	_, err := s.db.Collection("preferencias_notificaciones").UpdateOne(
 		context.Background(),
 		bson.M{"_id": preferencias.UsuarioID},
 		bson.M{"$set": preferencias},
-		bson.M{"upsert": true},
+		options,
 	)
 	return err
 }
