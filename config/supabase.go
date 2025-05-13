@@ -5,6 +5,7 @@ package config
 
 // SupabaseConfig contiene la configuración para conectarse a Supabase
 type SupabaseConfig struct {
+	Client interface{} `json:"-" bson:"-"`
 	URL        string `json:"url" bson:"url"`
 	Key        string `json:"key" bson:"key"`
 	Token      string `json:"token" bson:"token"`
