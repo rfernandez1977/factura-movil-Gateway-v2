@@ -153,7 +153,7 @@ type ConfiguracionSII struct {
 // ConfiguracionERP representa la configuración específica para la integración con el ERP
 type ConfiguracionERP struct {
 	ID         string    `json:"id"`
-	Tipo       string    `json:"tipo"`
+	TipoERP    TipoERP   `json:"tipo"`
 	BaseURL    string    `json:"baseUrl"`
 	APIKey     string    `json:"apiKey"`
 	Timeout    int       `json:"timeout"`
@@ -205,10 +205,10 @@ func NewConfiguracionSII(rutEmisor, certificadoPath, clavePrivada, ambiente stri
 	}
 }
 
-func NewConfiguracionERP(tipo, baseURL, apiKey string) *ConfiguracionERP {
+func NewConfiguracionERP(tipo TipoERP, baseURL, apiKey string) *ConfiguracionERP {
 	return &ConfiguracionERP{
 		ID:         GenerateID(),
-		Tipo:       tipo,
+		TipoERP:    tipo,
 		BaseURL:    baseURL,
 		APIKey:     apiKey,
 		Timeout:    30,
