@@ -11,6 +11,7 @@ type Boleta struct {
 	Folio               int              `json:"folio"`
 	FechaEmision        time.Time        `json:"fecha_emision"`
 	MontoNeto           float64          `json:"monto_neto"`
+	MontoExento         float64          `json:"monto_exento"`
 	MontoIVA            float64          `json:"monto_iva"`
 	MontoTotal          float64          `json:"monto_total"`
 	RutEmisor           string           `json:"rut_emisor"`
@@ -22,6 +23,7 @@ type Boleta struct {
 	Estado              string           `json:"estado"`
 	EstadoSII           string           `json:"estado_sii"`
 	Detalles            []*DetalleBoleta `json:"detalles,omitempty"`
+	Items               []*DetalleBoleta `json:"items,omitempty"`
 }
 
 // DetalleBoleta representa un detalle de boleta
@@ -39,6 +41,7 @@ type BoletaRequest struct {
 	RutEmisor   string            `json:"rut_emisor" binding:"required"`
 	RutReceptor string            `json:"rut_receptor" binding:"required"`
 	MontoNeto   float64           `json:"monto_neto" binding:"required,gte=0"`
+	MontoExento float64           `json:"monto_exento" binding:"gte=0"`
 	Detalles    []*DetalleRequest `json:"detalles" binding:"required,min=1"`
 }
 
@@ -47,6 +50,7 @@ type DetalleRequest struct {
 	Descripcion string  `json:"descripcion" binding:"required"`
 	Cantidad    int     `json:"cantidad" binding:"required,gt=0"`
 	Precio      float64 `json:"precio" binding:"required,gte=0"`
+	Exento      bool    `json:"exento"`
 }
 
 // EstadoDocumentoSII representa el estado de un documento en el SII

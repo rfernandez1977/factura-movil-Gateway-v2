@@ -58,14 +58,13 @@ func (s *DTEValidationService) RegisterValidation(tipo string, config *models.Va
 }
 
 // ValidateDTE valida un documento tributario
-func (s *DTEValidationService) ValidateDTE(ctx context.Context, doc *models.DocumentoTributario) ([]*models.ValidationError, error) {
+func (s *DTEValidationService) ValidateDTE(ctx context.Context, doc *models.DocumentoTributario) ([]*models.ValidationFieldError, error) {
 	// Obtener configuración de validación para el tipo de documento
 	config, ok := s.validations[doc.TipoDTE]
 	if !ok {
 		return nil, fmt.Errorf("no hay configuración de validación para el tipo de documento %s", doc.TipoDTE)
 	}
 
-	var errores []*models.ValidationError
 	validator := &models.BaseValidator{}
 
 	// Validar cada regla
@@ -147,10 +146,10 @@ func validateCustom(valor interface{}, expresion string) error {
 }
 
 // ApplySuggestions aplica sugerencias de corrección a un documento
-func (s *DTEValidationService) ApplySuggestions(ctx context.Context, doc *models.DocumentoTributario, suggestions []*models.ValidationError) error {
+func (s *DTEValidationService) ApplySuggestions(ctx context.Context, doc *models.DocumentoTributario, suggestions []*models.Suggestion) error {
 	for _, suggestion := range suggestions {
-		if err := doc.SetField(suggestion.Codigo, suggestion.Detalles); err != nil {
-			return fmt.Errorf("error aplicando sugerencia para %s: %v", suggestion.Codigo, err)
+		if err := doc.SetField(suggestion.Campo, suggestion.Valor); err != nil {
+			return fmt.Errorf("error aplicando sugerencia para %s: %v", suggestion.Campo, err)
 		}
 	}
 	return nil

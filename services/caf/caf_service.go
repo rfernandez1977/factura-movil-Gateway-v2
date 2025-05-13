@@ -29,25 +29,23 @@ func (s *Service) GetCAFDisponible(ctx context.Context, tipoDTE models.TipoDTE, 
 	return &models.CAFDTEXML{
 		Version: "1.0",
 		DA: models.DAXMLModel{
-			RE: models.RutXMLModel{
-				Rut:         rutEmisor,
-				Dv:          "7",
-				RazonSocial: "EMPRESA DE PRUEBA",
-				Giro:        "DESARROLLO DE SOFTWARE",
-				Acteco:      "620100",
-				Direccion:   "CALLE PRINCIPAL 123",
-				Comuna:      "SANTIAGO",
-				Ciudad:      "SANTIAGO",
+			RUT: models.RutXMLModel{
+				Numero: rutEmisor,
 			},
+			RazonSocial: "EMPRESA DE PRUEBA",
+			TipoDTE:     string(tipoDTE),
+			RangoDesde:  1,
+			RangoHasta:  100,
+			FechaAut:    "2023-01-01",
 			RSAPK: models.RSAPKXMLModel{
-				M: "test-modulus",
-				E: "test-exponent",
+				Modulo:    "test-modulus",
+				Exponente: "test-exponent",
 			},
 			IDK: 1,
 		},
 		FRMA: models.FRMAXMLModel{
 			Algoritmo: "SHA1withRSA",
-			Value:     "test-signature",
+			Valor:     "test-signature",
 		},
 	}, nil
 }
