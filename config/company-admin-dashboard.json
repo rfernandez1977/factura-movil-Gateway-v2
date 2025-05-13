@@ -1,0 +1,263 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "company-admin",
+    "title": "Administración de Compañías",
+    "tags": ["admin", "companies", "configuration"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 0,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Resumen de Compañías",
+        "type": "stat",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.companies.count()",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Configuraciones por Plataforma",
+        "type": "table",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.ecommerce_stores.aggregate([{$group: {_id: '$platform', count: {$sum: 1}}}])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Estado de Sincronización",
+        "type": "graph",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.sync_logs.aggregate([{$group: {_id: '$status', count: {$sum: 1}}}])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        }
+      },
+      {
+        "id": 4,
+        "title": "Últimas Sincronizaciones",
+        "type": "table",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.sync_logs.find().sort({timestamp: -1}).limit(10)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        }
+      },
+      {
+        "id": 5,
+        "title": "Errores por Compañía",
+        "type": "bargauge",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.error_logs.aggregate([{$group: {_id: '$company_id', count: {$sum: 1}}}])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        }
+      },
+      {
+        "id": 6,
+        "title": "Rendimiento del Sistema",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(request_duration_seconds_sum[5m]) / rate(request_duration_seconds_count[5m])",
+            "legendFormat": "{{endpoint}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        }
+      },
+      {
+        "id": 7,
+        "title": "Uso de Caché",
+        "type": "gauge",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "cache_hits_total / (cache_hits_total + cache_misses_total) * 100",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        }
+      },
+      {
+        "id": 8,
+        "title": "Documentos por Estado",
+        "type": "piechart",
+        "datasource": "MongoDB",
+        "targets": [
+          {
+            "query": "db.documents.aggregate([{$group: {_id: '$status', count: {$sum: 1}}}])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 44
+        }
+      },
+      {
+        "id": 9,
+        "title": "Alertas Activas",
+        "type": "alertlist",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "ALERTS",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 52
+        }
+      },
+      {
+        "title": "Resumen de Impuestos",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(fmgo_monto_iva_total)",
+            "legendFormat": "IVA Total"
+          },
+          {
+            "expr": "sum(fmgo_monto_exento_total)",
+            "legendFormat": "Exento Total"
+          }
+        ]
+      },
+      {
+        "title": "Impuestos Adicionales por Tipo",
+        "type": "bargauge",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(fmgo_impuestos_adicionales_monto) by (codigo, nombre)",
+            "legendFormat": "{{codigo}} - {{nombre}}"
+          }
+        ]
+      },
+      {
+        "title": "Base Imponible Impuestos Adicionales",
+        "type": "timeseries",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(fmgo_impuestos_adicionales_base) by (codigo, nombre)",
+            "legendFormat": "{{codigo}} - {{nombre}}"
+          }
+        ]
+      },
+      {
+        "title": "Porcentaje Impuestos Adicionales",
+        "type": "gauge",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "avg(fmgo_impuestos_adicionales_porcentaje) by (codigo, nombre)",
+            "legendFormat": "{{codigo}} - {{nombre}}"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "company",
+          "type": "query",
+          "datasource": "MongoDB",
+          "query": "db.companies.find().map(function(doc) { return { text: doc.name, value: doc._id } })"
+        },
+        {
+          "name": "platform",
+          "type": "query",
+          "datasource": "MongoDB",
+          "query": "db.ecommerce_stores.distinct('platform')"
+        },
+        {
+          "name": "timeRange",
+          "type": "interval",
+          "query": "1h,6h,12h,1d,7d,14d,30d",
+          "current": {
+            "selected": true,
+            "text": "1d",
+            "value": "1d"
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Alertas",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{description}}"
+        }
+      ]
+    }
+  }
+} 

@@ -1,0 +1,30 @@
+{
+  "server": {
+    "port": 3000,
+    "host": "localhost"
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "postgres",
+    "name": "dte_db"
+  },
+  "sii": {
+    "url": "https://www4.sii.cl/consdcvinternetui/",
+    "environment": "testing",
+    "timeout": 30
+  },
+  "certificates": {
+    "privateKeyPath": "certs/private.key",
+    "publicKeyPath": "certs/public.key",
+    "certPath": "certs/cert.pem"
+  },
+  "logging": {
+    "level": "info",
+    "filePath": "logs/app.log",
+    "maxSize": 10,
+    "maxBackups": 5,
+    "maxAge": 30
+  }
+} 

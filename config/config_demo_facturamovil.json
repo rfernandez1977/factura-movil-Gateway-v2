@@ -1,0 +1,23 @@
+{
+  "empresa": {
+    "rutEmisor": "76212889-6",
+    "rutEnvia": "76212889-6",
+    "rutReceptor": "76212889-6",
+    "fchResol": "2024-03-21",
+    "nroResol": "0",
+    "razonSocial": "FACTURA MOVIL SPA",
+    "giroEmis": "DESARROLLO DE SOFTWARE",
+    "correoEmisor": "contacto@facturamovil.com",
+    "acteco": ["620200"],
+    "dirOrigen": "APOQUINDO 6410 OF 605",
+    "cmnaOrigen": "LAS CONDES",
+    "ciudadOrigen": "SANTIAGO"
+  },
+  "folios": {
+    "factura": 1002
+  },
+  "firma": {
+    "path": "../firma_test/cert.pem",
+    "caf": "../caf_test/33-cert.xml"
+  }
+} 

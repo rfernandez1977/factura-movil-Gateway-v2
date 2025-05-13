@@ -1,0 +1,8 @@
+{
+    "auth": {
+        "api_key": "tu-api-key-segura-aqui"
+    },
+    "server": {
+        "port": "3000"
+    }
+}
