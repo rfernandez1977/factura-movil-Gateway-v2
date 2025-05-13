@@ -2,9 +2,12 @@ package services
 
 import (
 	"archive/zip"
+	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -24,6 +27,22 @@ func NewBackupService(db *gorm.DB, backupDir string, retention int) *BackupServi
 		backupDir: backupDir,
 		retention: retention,
 	}
+}
+
+// GetBackupFiles retorna la lista de archivos de respaldo
+func (s *BackupService) GetBackupFiles() ([]string, error) {
+	// Crear directorio de respaldo si no existe
+	if err := os.MkdirAll(s.backupDir, 0755); err != nil {
+		return nil, fmt.Errorf("error al crear directorio de respaldo: %w", err)
+	}
+
+	// Obtener lista de archivos de respaldo
+	files, err := filepath.Glob(filepath.Join(s.backupDir, "backup_*.zip"))
+	if err != nil {
+		return nil, fmt.Errorf("error al listar archivos de respaldo: %w", err)
+	}
+
+	return files, nil
 }
 
 // CreateBackup crea un nuevo respaldo
@@ -96,41 +115,58 @@ func (s *BackupService) exportTable(zipWriter *zip.Writer, tableName, query stri
 	}
 	defer rows.Close()
 
-	// Escribir datos en CSV
+	// Obtener columnas
 	columns, err := rows.Columns()
 	if err != nil {
 		return fmt.Errorf("error al obtener columnas: %w", err)
 	}
 
 	// Escribir encabezados
-	for i, col := range columns {
-		if i > 0 {
-			file.Write([]byte(","))
-		}
-		file.Write([]byte(col))
+	header := strings.Join(columns, ",")
+	if _, err := file.Write([]byte(header + "\n")); err != nil {
+		return fmt.Errorf("error al escribir encabezados: %w", err)
 	}
-	file.Write([]byte("\n"))
 
-	// Escribir datos
-	values := make([]interface{}, len(columns))
+	// Preparar contenedores para datos
+	values := make([]sql.RawBytes, len(columns))
+	scanArgs := make([]interface{}, len(columns))
 	for i := range values {
-		values[i] = new(interface{})
+		scanArgs[i] = &values[i]
 	}
 
+	// Procesar filas
 	for rows.Next() {
-		if err := rows.Scan(values...); err != nil {
+		// Escanear fila actual
+		if err := rows.Scan(scanArgs...); err != nil {
 			return fmt.Errorf("error al escanear fila: %w", err)
 		}
 
-		for i, val := range values {
-			if i > 0 {
-				file.Write([]byte(","))
-			}
-			if val != nil {
-				file.Write([]byte(fmt.Sprintf("%v", *val.(*interface{}))))
+		// Procesar valores
+		var rowValues []string
+		for _, col := range values {
+			// Verificar si es NULL
+			if col == nil {
+				rowValues = append(rowValues, "")
+			} else {
+				// Escapar comillas y comas para CSV
+				value := string(col)
+				if strings.ContainsAny(value, "\",") {
+					value = fmt.Sprintf("\"%s\"", strings.ReplaceAll(value, "\"", "\"\""))
+				}
+				rowValues = append(rowValues, value)
 			}
 		}
-		file.Write([]byte("\n"))
+
+		// Escribir línea
+		line := strings.Join(rowValues, ",")
+		if _, err := file.Write([]byte(line + "\n")); err != nil {
+			return fmt.Errorf("error al escribir línea: %w", err)
+		}
+	}
+
+	// Verificar errores durante la iteración
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error durante la iteración: %w", err)
 	}
 
 	return nil
@@ -185,6 +221,13 @@ func (s *BackupService) RestoreBackup(backupFile string) error {
 
 // restoreTable restaura una tabla desde un archivo CSV
 func (s *BackupService) restoreTable(file *zip.File) error {
+	// Extraer nombre de tabla del nombre de archivo
+	tableName := filepath.Base(file.Name)
+	if len(tableName) < 5 || tableName[len(tableName)-4:] != ".csv" {
+		return fmt.Errorf("formato de archivo inválido: %s", tableName)
+	}
+	tableName = tableName[:len(tableName)-4]
+
 	// Abrir archivo
 	reader, err := file.Open()
 	if err != nil {
@@ -192,8 +235,83 @@ func (s *BackupService) restoreTable(file *zip.File) error {
 	}
 	defer reader.Close()
 
-	// TODO: Implementar restauración de datos
-	// Esto requerirá un parser CSV y la inserción de datos en la base de datos
+	// Leer archivo CSV
+	csvData, err := readCSVData(reader)
+	if err != nil {
+		return fmt.Errorf("error al leer datos CSV: %w", err)
+	}
+
+	// Si no hay datos, no hay nada que restaurar
+	if len(csvData) < 2 {
+		return nil
+	}
+
+	// Obtener nombres de columnas (primera línea)
+	columns := csvData[0]
+
+	// Iniciar transacción
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("error al iniciar transacción: %w", tx.Error)
+	}
+
+	// Limpiar tabla existente
+	if err := tx.Exec(fmt.Sprintf("DELETE FROM %s", tableName)).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error al limpiar tabla: %w", err)
+	}
+
+	// Insertar filas
+	for i := 1; i < len(csvData); i++ {
+		row := csvData[i]
+
+		// Construir mapa para inserción
+		data := make(map[string]interface{})
+		for j, col := range columns {
+			if j < len(row) {
+				data[col] = row[j]
+			} else {
+				data[col] = nil
+			}
+		}
+
+		// Insertar fila
+		if err := tx.Table(tableName).Create(data).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error al insertar fila %d: %w", i, err)
+		}
+	}
+
+	// Confirmar transacción
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("error al confirmar transacción: %w", err)
+	}
 
 	return nil
+}
+
+// readCSVData lee datos de un archivo CSV
+func readCSVData(reader io.Reader) ([][]string, error) {
+	// Leer todo el contenido
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("error al leer contenido: %w", err)
+	}
+
+	// Dividir en líneas
+	lines := strings.Split(string(content), "\n")
+
+	// Procesar cada línea
+	var result [][]string
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		// Dividir por comas (esto es simplificado, un parser CSV real maneja comillas, escapes, etc.)
+		fields := strings.Split(line, ",")
+		result = append(result, fields)
+	}
+
+	return result, nil
 }

@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cursor/FMgo/services"
 	"github.com/cursor/FMgo/utils"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -142,12 +142,34 @@ func (c *BackupController) ListBackups(ctx *gin.Context) {
 		return
 	}
 
-	// Obtener lista de archivos de respaldo
-	files, err := filepath.Glob(filepath.Join(c.backupService.backupDir, "backup_*.zip"))
+	// Obtenemos los archivos de backup a través del método GetBackupFiles que debemos implementar en el servicio
+	backups, err := c.GetBackupFiles()
 	if err != nil {
 		utils.LogError(err, zap.String("endpoint", "ListBackups"))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Registrar métricas HTTP
+	duration := time.Since(start).Seconds()
+	utils.RecordHTTPRequest(
+		ctx.Request.Method,
+		ctx.Request.URL.Path,
+		http.StatusOK,
+		duration,
+		float64(ctx.Request.ContentLength),
+		float64(len(backups)),
+	)
+
+	ctx.JSON(http.StatusOK, backups)
+}
+
+// GetBackupFiles obtiene la lista de archivos de respaldo
+func (c *BackupController) GetBackupFiles() ([]gin.H, error) {
+	// Obtener lista de archivos del servicio
+	files, err := c.backupService.GetBackupFiles()
+	if err != nil {
+		return nil, err
 	}
 
 	// Obtener información de cada archivo
@@ -165,16 +187,5 @@ func (c *BackupController) ListBackups(ctx *gin.Context) {
 		}
 	}
 
-	// Registrar métricas HTTP
-	duration := time.Since(start).Seconds()
-	utils.RecordHTTPRequest(
-		ctx.Request.Method,
-		ctx.Request.URL.Path,
-		http.StatusOK,
-		duration,
-		float64(ctx.Request.ContentLength),
-		float64(len(backups)),
-	)
-
-	ctx.JSON(http.StatusOK, backups)
+	return backups, nil
 }
