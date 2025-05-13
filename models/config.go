@@ -134,6 +134,9 @@ type Config struct {
 		Environment string `json:"environment"`
 	} `json:"monitoring"`
 
+	// Entorno de ejecución (development, production, etc.)
+	Env string `json:"env"`
+
 	Client interface{} `json:"-" bson:"-"`
 }
 

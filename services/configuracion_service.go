@@ -42,11 +42,11 @@ func NewConfiguracionService(
 
 // ObtenerConfiguracion obtiene la configuración del sistema
 func (s *ConfiguracionService) ObtenerConfiguracion(clave string) (*models.Configuracion, error) {
+	ctx := context.Background()
 	cacheKey := fmt.Sprintf("config:%s", clave)
 
 	// Verificar si está en caché
 	if s.cacheService != nil {
-		ctx := context.Background()
 		var cachedConfig models.Configuracion
 		err := s.cacheService.Get(ctx, cacheKey, &cachedConfig)
 		if err == nil {
@@ -77,7 +77,7 @@ func (s *ConfiguracionService) ObtenerConfiguracion(clave string) (*models.Confi
 	} else if s.db != nil {
 		// Obtener de MongoDB
 		err = s.db.Collection("configuraciones").FindOne(
-			context.Background(),
+			ctx,
 			bson.M{"clave": clave},
 		).Decode(&config)
 		if err != nil {
@@ -89,7 +89,6 @@ func (s *ConfiguracionService) ObtenerConfiguracion(clave string) (*models.Confi
 
 	// Guardar en caché para futuras consultas
 	if s.cacheService != nil {
-		ctx := context.Background()
 		err = s.cacheService.SetWithExpiration(ctx, cacheKey, &config, 30*time.Minute)
 		if err != nil {
 			// Solo loguear el error, continuar con la respuesta
@@ -102,6 +101,8 @@ func (s *ConfiguracionService) ObtenerConfiguracion(clave string) (*models.Confi
 
 // ActualizarConfiguracion actualiza la configuración de una empresa
 func (s *ConfiguracionService) ActualizarConfiguracion(config *models.Configuracion) error {
+	ctx := context.Background()
+
 	if config == nil {
 		return errors.New("configuración no puede ser nil")
 	}
@@ -118,36 +119,84 @@ func (s *ConfiguracionService) ActualizarConfiguracion(config *models.Configurac
 	config.RUT = empresa.RUT
 	config.UpdatedAt = time.Now()
 
-	// Actualizar en Supabase
-	_, err = s.supabaseClient.GetClient().DB.From("configuraciones").
-		Update(config).
-		Eq("id", config.ID).
-		Execute()
+	if s.supabaseClient != nil {
+		// Actualizar en Supabase utilizando postgrest-go directamente
+		data, count, err := s.supabaseClient.GetClient().From("configuraciones").
+			Update(config, "", "").
+			Eq("id", config.ID).
+			Execute()
 
-	if err != nil {
-		s.logger.Error("Error al actualizar configuración",
-			zap.String("id", config.ID), zap.Error(err))
-		return err
+		if err != nil {
+			s.logger.Error("Error al actualizar configuración",
+				zap.String("id", config.ID), zap.Error(err))
+			return err
+		}
+
+		if count == 0 {
+			return fmt.Errorf("no se actualizó ninguna configuración con id: %s", config.ID)
+		}
+
+		// Opcionalmente podríamos utilizar data si necesitamos la respuesta
+		_ = data
+	} else if s.db != nil {
+		// Actualizar en MongoDB
+		_, err = s.db.Collection("configuraciones").UpdateOne(
+			ctx,
+			bson.M{"id": config.ID},
+			bson.M{"$set": config},
+		)
+		if err != nil {
+			s.logger.Error("Error al actualizar configuración",
+				zap.String("id", config.ID), zap.Error(err))
+			return err
+		}
+	} else {
+		return errors.New("no se ha configurado una fuente de datos")
 	}
 
 	// Invalidar caché
 	if s.cacheService != nil {
 		cacheKey := fmt.Sprintf("config:%s", config.EmpresaID)
-		s.cacheService.Delete(cacheKey)
+		s.cacheService.Delete(ctx, cacheKey)
 	}
 
 	return nil
 }
 
-// ObtenerConfiguracionSII obtiene la configuración del SII para una empresa
+// ObtenerConfiguracionSII obtiene la configuración SII de una empresa
 func (s *ConfiguracionService) ObtenerConfiguracionSII(empresaID string) (*models.ConfiguracionSIIEmpresa, error) {
-	// Obtener la configuración completa
-	config, err := s.ObtenerConfiguracion(empresaID)
-	if err != nil {
-		return nil, err
+	ctx := context.Background()
+
+	// Obtener de la base de datos
+	var configSII models.ConfiguracionSIIEmpresa
+	var err error
+
+	if s.supabaseClient != nil {
+		// Obtener de Supabase
+		req := s.supabaseClient.GetClient().From("configuraciones_sii").Select("*", "", false).Eq("empresa_id", empresaID)
+		data, _, err := req.Execute()
+		if err != nil {
+			return nil, fmt.Errorf("error obteniendo configuración SII: %v", err)
+		}
+
+		// Decodificar respuesta
+		err = json.Unmarshal(data, &configSII)
+		if err != nil {
+			return nil, fmt.Errorf("error decodificando configuración SII: %v", err)
+		}
+	} else if s.db != nil {
+		err = s.db.Collection("configuraciones_sii").FindOne(
+			ctx,
+			bson.M{"empresa_id": empresaID},
+		).Decode(&configSII)
+		if err != nil {
+			return nil, fmt.Errorf("error obteniendo configuración SII: %v", err)
+		}
+	} else {
+		return nil, errors.New("no se ha configurado una fuente de datos")
 	}
 
-	return &config.ConfigSII, nil
+	return &configSII, nil
 }
 
 // ActualizarConfiguracionSII actualiza la configuración del SII para una empresa
@@ -203,6 +252,8 @@ func (s *ConfiguracionService) ActualizarConfiguracionEmail(configEmail *models.
 
 // EliminarConfiguracion elimina una configuración
 func (s *ConfiguracionService) EliminarConfiguracion(clave string) error {
+	ctx := context.Background()
+
 	// Eliminar de la base de datos
 	var err error
 
@@ -219,7 +270,7 @@ func (s *ConfiguracionService) EliminarConfiguracion(clave string) error {
 	} else if s.db != nil {
 		// Eliminar de MongoDB
 		result, err := s.db.Collection("configuraciones").DeleteOne(
-			context.Background(),
+			ctx,
 			bson.M{"clave": clave},
 		)
 		if err != nil {
@@ -235,7 +286,6 @@ func (s *ConfiguracionService) EliminarConfiguracion(clave string) error {
 	// Eliminar de la caché
 	cacheKey := fmt.Sprintf("config:%s", clave)
 	if s.cacheService != nil {
-		ctx := context.Background()
 		err = s.cacheService.Delete(ctx, cacheKey)
 		if err != nil {
 			// Solo loguear el error, continuar con la respuesta

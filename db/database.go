@@ -30,7 +30,7 @@ func InitDB(cfg *config.Config) error {
 
 	// Conectar a la base de datos usando la configuración centralizada
 	var err error
-	DB, err = gorm.Open(postgres.Open(cfg.GetDSN()), &gorm.Config{
+	DB, err = gorm.Open(postgres.Open(config.GetDSN(cfg)), &gorm.Config{
 		Logger: newLogger,
 	})
 	if err != nil {

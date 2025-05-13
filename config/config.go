@@ -85,6 +85,15 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("error parseando JSON: %v", err)
 	}
 
+	// Inicializar el cliente de Supabase si corresponde
+	if config.Supabase.URL != "" && config.Supabase.APIKey != "" {
+		client := postgrest.NewClient(config.Supabase.URL, "", map[string]string{
+			"apikey":        config.Supabase.APIKey,
+			"Authorization": "Bearer " + config.Supabase.ServiceKey,
+		})
+		config.Client = client
+	}
+
 	return &config, nil
 }
 
@@ -160,6 +169,9 @@ func GetDefaultConfig() *Config {
 	config.Supabase.TablaEmpresas = "empresas"
 	config.Supabase.TablaUsuarios = "usuarios"
 
+	// Inicializar el entorno por defecto
+	config.Env = "development"
+
 	return config
 }
 
@@ -176,6 +188,28 @@ func GetDSN(c *Config) string {
 
 // GetEnv returns the current environment
 func GetEnv(c *Config) string {
-	// Default to development environment
-	return "development"
+	if c.Env == "" {
+		return "development" // valor por defecto
+	}
+	return c.Env
+}
+
+// GetSiiEndpoint devuelve el endpoint del SII según el ambiente configurado
+func GetSiiEndpoint(c *Config) string {
+	// Valores por defecto
+	urlCertificacion := "https://maullin.sii.cl/DTEWS/"
+	urlProduccion := "https://palena.sii.cl/DTEWS/"
+
+	// Determinar ambiente
+	if c.SII.BaseURL != "" {
+		// Si hay una URL base definida, usarla
+		return c.SII.BaseURL
+	}
+
+	// Elegir endpoint según ambiente
+	if c.Env == "production" {
+		return urlProduccion
+	}
+
+	return urlCertificacion
 }

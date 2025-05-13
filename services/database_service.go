@@ -8,6 +8,7 @@ import (
 
 	"github.com/cursor/FMgo/config"
 	"github.com/supabase-community/postgrest-go"
+	supa "github.com/supabase-community/supabase-go"
 )
 
 // DatabaseService maneja las operaciones con la base de datos
@@ -24,13 +25,40 @@ func NewDatabaseService(config *config.Config) *DatabaseService {
 
 // GetClient retorna el cliente de la base de datos
 func (s *DatabaseService) GetClient() *postgrest.Client {
-	return s.config.Client
+	if client, ok := s.config.Client.(*postgrest.Client); ok {
+		return client
+	}
+
+	// Si el cliente no está inicializado, inicializarlo
+	client := postgrest.NewClient(s.config.Supabase.URL, "", map[string]string{
+		"apikey":        s.config.Supabase.APIKey,
+		"Authorization": "Bearer " + s.config.Supabase.ServiceKey,
+	})
+
+	// Guardarlo en la configuración para futuras llamadas
+	s.config.Client = client
+
+	return client
+}
+
+// GetSupabaseClient retorna el cliente de Supabase
+func (s *DatabaseService) GetSupabaseClient() *supa.Client {
+	if client, ok := s.config.Client.(*supa.Client); ok {
+		return client
+	}
+
+	// Si el cliente no está inicializado o es de otro tipo, devolver nil
+	return nil
 }
 
 // From establece la tabla a consultar
 func (s *DatabaseService) From(table string) *postgrest.QueryBuilder {
-	query := s.config.Client.From(table)
-	return query
+	client := s.GetClient()
+	if client == nil {
+		return nil
+	}
+
+	return client.From(table)
 }
 
 // Query ejecuta una consulta en la base de datos
@@ -97,7 +125,12 @@ type Usuario struct {
 // ObtenerUsuario obtiene un usuario por su ID
 func (s *DatabaseService) ObtenerUsuario(ctx context.Context, userID string) (*Usuario, error) {
 	var usuario Usuario
-	resp, _, err := s.config.Client.From("auth.users").
+	query := s.From("auth.users")
+	if query == nil {
+		return nil, fmt.Errorf("error al obtener la tabla de usuarios")
+	}
+
+	resp, _, err := query.
 		Select("*", "", false).
 		Eq("id", userID).
 		Single().
@@ -116,7 +149,12 @@ func (s *DatabaseService) ObtenerUsuario(ctx context.Context, userID string) (*U
 
 // ActualizarUsuario actualiza la información de un usuario
 func (s *DatabaseService) ActualizarUsuario(ctx context.Context, userID string, updates map[string]interface{}) error {
-	_, _, err := s.config.Client.From("auth.users").
+	query := s.From("auth.users")
+	if query == nil {
+		return fmt.Errorf("error al obtener la tabla de usuarios")
+	}
+
+	_, _, err := query.
 		Update(updates, "", "").
 		Eq("id", userID).
 		Execute()
@@ -137,7 +175,12 @@ func (s *DatabaseService) CrearUsuario(ctx context.Context, email, password stri
 		"user_metadata": metadata,
 	}
 
-	resp, _, err := s.config.Client.From("auth.users").
+	query := s.From("auth.users")
+	if query == nil {
+		return nil, fmt.Errorf("error al obtener la tabla de usuarios")
+	}
+
+	resp, _, err := query.
 		Insert(userData, false, "", "", "").
 		Single().
 		Execute()
@@ -156,7 +199,12 @@ func (s *DatabaseService) CrearUsuario(ctx context.Context, email, password stri
 
 // EliminarUsuario elimina un usuario
 func (s *DatabaseService) EliminarUsuario(ctx context.Context, userID string) error {
-	_, _, err := s.config.Client.From("auth.users").
+	query := s.From("auth.users")
+	if query == nil {
+		return fmt.Errorf("error al obtener la tabla de usuarios")
+	}
+
+	_, _, err := query.
 		Delete("", "").
 		Eq("id", userID).
 		Execute()
@@ -170,14 +218,19 @@ func (s *DatabaseService) EliminarUsuario(ctx context.Context, userID string) er
 
 // ListarUsuarios obtiene una lista de usuarios con filtros opcionales
 func (s *DatabaseService) ListarUsuarios(ctx context.Context, filtros map[string]interface{}) ([]Usuario, error) {
-	query := s.config.Client.From("auth.users").Select("*", "", false)
+	query := s.From("auth.users")
+	if query == nil {
+		return nil, fmt.Errorf("error al obtener la tabla de usuarios")
+	}
+
+	queryBuilder := query.Select("*", "", false)
 
 	// Aplicar filtros
 	for key, value := range filtros {
-		query = query.Eq(key, fmt.Sprintf("%v", value))
+		queryBuilder = queryBuilder.Eq(key, fmt.Sprintf("%v", value))
 	}
 
-	resp, _, err := query.Execute()
+	resp, _, err := queryBuilder.Execute()
 	if err != nil {
 		return nil, fmt.Errorf("error al listar usuarios: %v", err)
 	}
@@ -212,6 +265,10 @@ func (s *DatabaseService) ActualizarUltimoAcceso(ctx context.Context, userID str
 // FindByID busca un registro por su ID
 func (s *DatabaseService) FindByID(id string) (interface{}, error) {
 	query := s.From("your_table")
+	if query == nil {
+		return nil, fmt.Errorf("error al obtener la tabla")
+	}
+
 	result, _, err := query.Select("*", "", false).Eq("id", id).Single().Execute()
 	if err != nil {
 		return nil, err
