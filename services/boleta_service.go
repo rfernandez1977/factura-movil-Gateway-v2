@@ -22,6 +22,15 @@ func NewBoletaService(siiService SIIClientInterface, boletaRepo interface{}) *Bo
 	}
 }
 
+// EstadoBoletaResponse representa la respuesta del estado de una boleta
+type EstadoBoletaResponse struct {
+	TrackID        string    `json:"track_id"`
+	Estado         string    `json:"estado"`
+	Glosa          string    `json:"glosa"`
+	FechaRecepcion time.Time `json:"fecha_recepcion"`
+	Errores        []string  `json:"errores,omitempty"`
+}
+
 // CrearBoleta crea una nueva boleta
 func (s *BoletaService) CrearBoleta(request *models.BoletaRequest) (*models.Boleta, error) {
 	// Implementación de ejemplo
@@ -47,7 +56,7 @@ func (s *BoletaService) CrearBoleta(request *models.BoletaRequest) (*models.Bole
 }
 
 // ConsultarEstadoBoleta consulta el estado de una boleta
-func (s *BoletaService) ConsultarEstadoBoleta(trackID, rutEmisor string) (*models.EstadoDocumento, error) {
+func (s *BoletaService) ConsultarEstadoBoleta(trackID, rutEmisor string) (*EstadoBoletaResponse, error) {
 	// Implementación de ejemplo
 	utils.LogInfo("consultando estado de boleta",
 		zap.String("track_id", trackID),
@@ -57,7 +66,7 @@ func (s *BoletaService) ConsultarEstadoBoleta(trackID, rutEmisor string) (*model
 	// En una implementación real, aquí se consultaría el estado al SII
 
 	// Devolver un estado de ejemplo
-	return &models.EstadoDocumento{
+	return &EstadoBoletaResponse{
 		TrackID:        trackID,
 		Estado:         "ACEPTADO",
 		Glosa:          "Documento recibido y procesado correctamente",
