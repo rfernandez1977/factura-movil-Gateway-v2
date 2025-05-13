@@ -1,0 +1,168 @@
+// Package sii implementa el servicio de integración con el SII (Servicio de Impuestos Internos)
+// para el envío y consulta de documentos tributarios electrónicos (DTE).
+//
+// Este paquete proporciona una interfaz para:
+// - Enviar DTE al SII
+// - Consultar el estado de DTE enviados
+// - Verificar la comunicación con el SII
+// - Manejar diferentes tipos de DTE (Facturas, Boletas, Guías, etc.)
+//
+// Las pruebas incluyen:
+// - Validación de parámetros y configuración
+// - Manejo de diferentes tipos de DTE
+// - Validación de RUT y formatos de folio
+// - Manejo de errores de red y certificados
+// - Pruebas de concurrencia
+// - Validación de respuestas y errores del SII
+
+package sii
+
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+// MockHTTPClient implementa la interfaz de http.Client para testing
+type MockHTTPClient struct {
+	mock.Mock
+}
+
+// ... existing code ...
+
+// TestRUTValidation prueba la validación de RUT en diferentes formatos y escenarios.
+// Incluye pruebas para:
+// - RUT válido con guión (formato 11.111.111-1)
+// - RUT válido sin guión (formato 11111111-1)
+// - RUT inválido con dígito verificador incorrecto
+// - RUT inválido con formato incorrecto
+func TestRUTValidation(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestFolioFormats prueba diferentes formatos y validaciones de folio.
+// Incluye pruebas para:
+// - Folio numérico válido
+// - Folio con ceros a la izquierda
+// - Folio inválido con caracteres no numéricos
+// - Folio inválido con longitud excedida
+func TestFolioFormats(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestValidationErrors prueba diferentes tipos de errores de validación del SII.
+// Incluye pruebas para:
+// - Error de monto total inválido
+// - Error de fecha fuera de rango permitido
+// - Múltiples errores de validación simultáneos
+func TestValidationErrors(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestDTETypes prueba el manejo de diferentes tipos de DTE.
+// Incluye pruebas para:
+// - Factura Electrónica (tipo 33)
+// - Boleta Electrónica (tipo 39)
+// - Nota de Crédito Electrónica (tipo 61)
+// - Guía de Despacho (tipo 52)
+// - Nota de Débito (tipo 56)
+// - Tipo DTE inválido
+func TestDTETypes(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestNetworkErrorTypes prueba el manejo de diferentes tipos de errores de red.
+// Incluye pruebas para:
+// - Error de DNS
+// - Error de conexión rechazada
+// - Error de conexión reseteada
+// - Error de host no alcanzable
+// - Error de red no disponible
+// - Error de timeout
+// - Error de TLS
+func TestNetworkErrorTypes(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestRetryMechanism prueba el mecanismo de reintentos para solicitudes fallidas.
+// Incluye pruebas para:
+// - Éxito después de reintentos
+// - Fallo después de reintentos
+func TestRetryMechanism(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestDateFormatHandling prueba el manejo de diferentes formatos de fecha.
+// Incluye pruebas para:
+// - Formato ISO8601
+// - Formato con offset
+// - Formato inválido
+func TestDateFormatHandling(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestSIIErrors prueba el manejo de errores específicos del SII.
+// Incluye pruebas para:
+// - Error de validación
+// - Error de certificado
+// - Error de límite de solicitudes
+func TestSIIErrors(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestEnvironments prueba la configuración de diferentes ambientes.
+// Incluye pruebas para:
+// - Ambiente de certificación
+// - Ambiente de producción
+// - Ambiente inválido
+func TestEnvironments(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestHTTPHeaders prueba la validación de headers HTTP.
+// Incluye pruebas para:
+// - Headers correctos
+// - Headers incorrectos
+func TestHTTPHeaders(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestTimeoutConfigurations prueba diferentes configuraciones de timeout.
+// Incluye pruebas para:
+// - Timeout inmediato
+// - Timeout después de delay
+// - Contexto cancelado
+// - Deadline excedido
+func TestTimeoutConfigurations(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestCertificateErrors prueba el manejo de errores relacionados con certificados.
+// Incluye pruebas para:
+// - Certificado no existe
+// - Llave no existe
+// - Certificado inválido
+func TestCertificateErrors(t *testing.T) {
+    // ... existing code ...
+}
+
+// TestConcurrentRequestsDifferentStates prueba solicitudes concurrentes con diferentes estados.
+// Verifica que el servicio maneje correctamente múltiples solicitudes simultáneas
+// con diferentes estados de respuesta.
+func TestConcurrentRequestsDifferentStates(t *testing.T) {
+    // ... existing code ...
+} 

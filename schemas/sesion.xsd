@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Esquema para la Sesión Electrónica con el SII
+     Última actualización: 2024-03-19
+     Define la estructura para la autenticación y autorización con el SII
+-->
+<xs:schema targetNamespace="http://www.sii.cl/SiiDte" 
+           xmlns:SiiDte="http://www.sii.cl/SiiDte" 
+           xmlns:ds="http://www.w3.org/2000/09/xmldsig#" 
+           xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+           elementFormDefault="qualified" 
+           attributeFormDefault="unqualified">
+
+    <!-- Incluir tipos comunes -->
+    <xs:include schemaLocation="SiiTypes_v10.xsd"/>
+    <xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsignature_v10.xsd"/>
+
+    <!-- Elemento raíz para la solicitud de sesión -->
+    <xs:element name="SolicitudSesion">
+        <xs:annotation>
+            <xs:documentation>Solicitud de inicio de sesión electrónica con el SII</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="RutContribuyente" type="SiiDte:RUTType">
+                    <xs:annotation>
+                        <xs:documentation>RUT del contribuyente que solicita la sesión</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="CertificadoDigital">
+                    <xs:annotation>
+                        <xs:documentation>Certificado digital del contribuyente</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="SerialNumber" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>Número de serie del certificado</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="Issuer" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>Emisor del certificado</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="ValidFrom" type="SiiDte:FechaHoraType">
+                                <xs:annotation>
+                                    <xs:documentation>Fecha de inicio de validez del certificado</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="ValidTo" type="SiiDte:FechaHoraType">
+                                <xs:annotation>
+                                    <xs:documentation>Fecha de término de validez del certificado</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Ambiente" type="SiiDte:AmbienteType">
+                    <xs:annotation>
+                        <xs:documentation>Ambiente de operación (PRODUCCION, CERTIFICACION)</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Timestamp" type="SiiDte:FechaHoraType">
+                    <xs:annotation>
+                        <xs:documentation>Fecha y hora de la solicitud</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:decimal" use="required" fixed="1.0"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Elemento raíz para la respuesta de sesión -->
+    <xs:element name="RespuestaSesion">
+        <xs:annotation>
+            <xs:documentation>Respuesta a la solicitud de sesión electrónica</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Estado">
+                    <xs:annotation>
+                        <xs:documentation>Estado de la respuesta</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="OK">
+                                <xs:annotation>
+                                    <xs:documentation>Sesión iniciada correctamente</xs:documentation>
+                                </xs:annotation>
+                            </xs:enumeration>
+                            <xs:enumeration value="ERROR">
+                                <xs:annotation>
+                                    <xs:documentation>Error al iniciar sesión</xs:documentation>
+                                </xs:annotation>
+                            </xs:enumeration>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="Token" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Token de sesión (solo si Estado=OK)</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Valor" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>Valor del token</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="Expira" type="SiiDte:FechaHoraType">
+                                <xs:annotation>
+                                    <xs:documentation>Fecha y hora de expiración del token</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Mensaje" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Mensaje descriptivo (solo si Estado=ERROR)</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:maxLength value="255"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="CodigoError" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Código de error (solo si Estado=ERROR)</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:maxLength value="10"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:decimal" use="required" fixed="1.0"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Elemento para renovación de sesión -->
+    <xs:element name="RenovacionSesion">
+        <xs:annotation>
+            <xs:documentation>Solicitud de renovación de sesión electrónica</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Token" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Token de sesión actual</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Timestamp" type="SiiDte:FechaHoraType">
+                    <xs:annotation>
+                        <xs:documentation>Fecha y hora de la solicitud de renovación</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:decimal" use="required" fixed="1.0"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Elemento para cierre de sesión -->
+    <xs:element name="CierreSesion">
+        <xs:annotation>
+            <xs:documentation>Solicitud de cierre de sesión electrónica</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Token" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Token de sesión a cerrar</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Timestamp" type="SiiDte:FechaHoraType">
+                    <xs:annotation>
+                        <xs:documentation>Fecha y hora del cierre de sesión</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:decimal" use="required" fixed="1.0"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Tipo para el ambiente de operación -->
+    <xs:simpleType name="AmbienteType">
+        <xs:annotation>
+            <xs:documentation>Tipo de ambiente de operación</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PRODUCCION">
+                <xs:annotation>
+                    <xs:documentation>Ambiente de producción</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CERTIFICACION">
+                <xs:annotation>
+                    <xs:documentation>Ambiente de certificación</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema> 

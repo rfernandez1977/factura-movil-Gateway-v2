@@ -1,0 +1,170 @@
+package utils
+
+import (
+	"time"
+
+	"github.com/cursor/FMgo/core/dte"
+	"github.com/cursor/FMgo/domain"
+	"github.com/cursor/FMgo/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// DomainToModel functions convert domain types to model types
+
+// DomainItemToModelDetalle converts domain.Item to models.Detalle
+func DomainItemToModelDetalle(item domain.Item) models.Detalle {
+	return models.Detalle{
+		Descripcion:    item.Descripcion,
+		Cantidad:       int(item.Cantidad),
+		PrecioUnitario: item.PrecioUnit,
+		MontoItem:      item.MontoTotal,
+	}
+}
+
+// DomainItemsToModelDetalles converts []domain.Item to []models.Detalle
+func DomainItemsToModelDetalles(items []domain.Item) []models.Detalle {
+	result := make([]models.Detalle, len(items))
+	for i, item := range items {
+		result[i] = DomainItemToModelDetalle(item)
+	}
+	return result
+}
+
+// DomainDocumentoToModelDocumento converts domain.DocumentoTributario to models.DocumentoTributario
+func DomainDocumentoToModelDocumento(doc domain.DocumentoTributario) models.DocumentoTributario {
+	return models.DocumentoTributario{
+		ID:           doc.ID.Hex(),
+		TipoDTE:      doc.TipoDocumento,
+		Folio:        int(doc.Folio),
+		FechaEmision: doc.FechaEmision,
+		RutEmisor:    doc.RutEmisor,
+		RutReceptor:  doc.RutReceptor,
+		MontoTotal:   doc.MontoTotal,
+		MontoNeto:    doc.MontoNeto,
+		MontoExento:  doc.MontoExento,
+		MontoIVA:     doc.MontoIVA,
+		Estado:       models.EstadoDTE(doc.Estado),
+		Timestamps: models.Timestamps{
+			Creado:     doc.FechaCreacion,
+			Modificado: doc.FechaActualizacion,
+		},
+	}
+}
+
+// CoreDTEToModelDTE converts core/dte.DTE to models.DocumentoTributario
+func CoreDTEToModelDTE(d *dte.DTE) models.DocumentoTributario {
+	doc := d.Documento
+	id := primitive.NewObjectID()
+	folio := int(doc.Encabezado.IDDocumento.Folio)
+
+	return models.DocumentoTributario{
+		ID:           id.Hex(),
+		TipoDTE:      doc.Encabezado.IDDocumento.TipoDTE,
+		Folio:        folio,
+		FechaEmision: doc.Encabezado.IDDocumento.FechaEmision,
+		RutEmisor:    doc.Encabezado.Emisor.RUT,
+		RutReceptor:  doc.Encabezado.Receptor.RUT,
+		MontoTotal:   doc.Encabezado.Totales.MontoTotal,
+		MontoNeto:    doc.Encabezado.Totales.MontoNeto,
+		MontoExento:  doc.Encabezado.Totales.MontoExento,
+		MontoIVA:     doc.Encabezado.Totales.IVA,
+		Estado:       models.EstadoDTEAceptado,
+		XML:          []byte(d.XML),
+		Timestamps: models.Timestamps{
+			Creado:     d.FechaCreacion,
+			Modificado: time.Now(),
+		},
+	}
+}
+
+// ModelToCore functions convert model types to core types
+
+// ModelDocumentoToCoreDTE converts models.DocumentoTributario to core/dte.DTE
+func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
+	emisor := dte.Emisor{
+		RUT:         doc.RutEmisor,
+		RazonSocial: doc.Emisor.RazonSocial,
+		Giro:        doc.Emisor.Giro,
+		Direccion:   doc.Emisor.Direccion,
+		Comuna:      doc.Emisor.Comuna,
+		Ciudad:      doc.Emisor.Ciudad,
+	}
+
+	receptor := dte.Receptor{
+		RUT:         doc.RutReceptor,
+		RazonSocial: doc.Receptor.RazonSocial,
+		Giro:        doc.Receptor.Giro,
+		Direccion:   doc.Receptor.Direccion,
+		Comuna:      doc.Receptor.Comuna,
+		Ciudad:      doc.Receptor.Ciudad,
+	}
+
+	idDoc := dte.IDDocumento{
+		TipoDTE:      doc.TipoDTE,
+		Folio:        doc.Folio,
+		FechaEmision: doc.FechaEmision,
+	}
+
+	totales := dte.Totales{
+		MontoNeto:   doc.MontoNeto,
+		MontoExento: doc.MontoExento,
+		IVA:         doc.MontoIVA,
+		MontoTotal:  doc.MontoTotal,
+	}
+
+	encabezado := dte.Encabezado{
+		IDDocumento: idDoc,
+		Emisor:      emisor,
+		Receptor:    receptor,
+		Totales:     totales,
+	}
+
+	// Convert detalles to core/dte.Detalle
+	detalles := make([]dte.Detalle, len(doc.Detalles))
+	for i, detalle := range doc.Detalles {
+		detalles[i] = dte.Detalle{
+			NumeroLinea: i + 1,
+			Nombre:      detalle.Descripcion,
+			Descripcion: detalle.Descripcion,
+			Cantidad:    float64(detalle.Cantidad),
+			Precio:      detalle.PrecioUnitario,
+			MontoItem:   detalle.MontoItem,
+		}
+	}
+
+	return &dte.DTE{
+		ID:            doc.ID,
+		Documento:     dte.Documento{Encabezado: encabezado, Detalles: detalles},
+		FechaCreacion: doc.Timestamps.Creado,
+		Estado:        string(doc.Estado),
+		XML:           string(doc.XML),
+	}
+}
+
+// Additional conversion functions can be added as needed for other types
+
+// DomainItemToModelItem converts domain.Item to models.Item
+func DomainItemToModelItem(item domain.Item, lineNumber int) models.Item {
+	return models.Item{
+		ID:             item.ID.Hex(),
+		NumeroLinea:    lineNumber,
+		Codigo:         "",
+		Nombre:         item.Descripcion,
+		Descripcion:    item.Descripcion,
+		Cantidad:       item.Cantidad,
+		PrecioUnitario: item.PrecioUnit,
+		Subtotal:       item.MontoNeto,
+		MontoItem:      item.MontoTotal,
+		PorcentajeIVA:  19.0, // Default for Chile
+		MontoIVA:       item.MontoIVA,
+	}
+}
+
+// DomainItemsToModelItems converts []domain.Item to []models.Item
+func DomainItemsToModelItems(items []domain.Item) []models.Item {
+	result := make([]models.Item, len(items))
+	for i, item := range items {
+		result[i] = DomainItemToModelItem(item, i+1)
+	}
+	return result
+}

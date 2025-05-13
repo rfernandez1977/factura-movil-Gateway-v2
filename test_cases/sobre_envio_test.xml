@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EnvioSII>
+  <SetDTE ID="SetDoc_20250505183208">
+    <Caratula>
+      <version>1.0</version>
+      <RutEmisor>76212889-6</RutEmisor>
+      <RutEnvia>76212889-6</RutEnvia>
+      <RutRecibe>60803000-K</RutRecibe>
+      <FchResol>2024-03-21</FchResol>
+      <NroResol>0</NroResol>
+      <TmstFirmaEnv>2025-05-05T18:32:08</TmstFirmaEnv>
+      <SubTotDTE>
+        <TpoDTE>33</TpoDTE>
+        <NroDTE>1</NroDTE>
+      </SubTotDTE>
+    </Caratula>
+    <DTE>&lt;DTE version=&#34;1.0&#34;&gt;&#xA;  &lt;Documento ID=&#34;F1002&#34;&gt;&#xA;    &lt;Encabezado&gt;&#xA;      &lt;IdDoc&gt;&#xA;        &lt;TipoDTE&gt;33&lt;/TipoDTE&gt;&#xA;        &lt;Folio&gt;1002&lt;/Folio&gt;&#xA;        &lt;FechaEmision&gt;2025-04-11&lt;/FechaEmision&gt;&#xA;      &lt;/IdDoc&gt;&#xA;      &lt;Emisor&gt;&#xA;        &lt;RUTEmisor&gt;76212889-6&lt;/RUTEmisor&gt;&#xA;        &lt;RznSoc&gt;FACTURA MOVIL SPA&lt;/RznSoc&gt;&#xA;        &lt;GiroEmis&gt;DESARROLLO DE SOFTWARE&lt;/GiroEmis&gt;&#xA;        &lt;Acteco&gt;620200&lt;/Acteco&gt;&#xA;        &lt;DirOrigen&gt;APOQUINDO 6410 OF 605&lt;/DirOrigen&gt;&#xA;        &lt;CmnaOrigen&gt;LAS CONDES&lt;/CmnaOrigen&gt;&#xA;        &lt;CiudadOrigen&gt;SANTIAGO&lt;/CiudadOrigen&gt;&#xA;      &lt;/Emisor&gt;&#xA;      &lt;Receptor&gt;&#xA;        &lt;RUTRecep&gt;76212889-6&lt;/RUTRecep&gt;&#xA;        &lt;RznSocRecep&gt;FACTURA MOVIL SPA&lt;/RznSocRecep&gt;&#xA;        &lt;GiroRecep&gt;&lt;/GiroRecep&gt;&#xA;        &lt;DirRecep&gt;&lt;/DirRecep&gt;&#xA;        &lt;CmnaRecep&gt;&lt;/CmnaRecep&gt;&#xA;      &lt;/Receptor&gt;&#xA;      &lt;Totales&gt;&#xA;        &lt;MntNeto&gt;38859.07&lt;/MntNeto&gt;&#xA;        &lt;TasaIVA&gt;19&lt;/TasaIVA&gt;&#xA;        &lt;IVA&gt;7383.2233&lt;/IVA&gt;&#xA;        &lt;MntTotal&gt;46242.2933&lt;/MntTotal&gt;&#xA;      &lt;/Totales&gt;&#xA;    &lt;/Encabezado&gt;&#xA;    &lt;Detalle&gt;&#xA;      &lt;NroLinDet&gt;1&lt;/NroLinDet&gt;&#xA;      &lt;NmbItem&gt;Servicio Mensual Plan Copihue&lt;/NmbItem&gt;&#xA;      &lt;QtyItem&gt;1&lt;/QtyItem&gt;&#xA;      &lt;PrcItem&gt;38859.07&lt;/PrcItem&gt;&#xA;      &lt;MontoItem&gt;38859.07&lt;/MontoItem&gt;&#xA;      &lt;CdgItem&gt;PLAN-COPIHUE&lt;/CdgItem&gt;&#xA;    &lt;/Detalle&gt;&#xA;  &lt;/Documento&gt;&#xA;&lt;Signature xmlns=&#34;http://www.w3.org/2000/09/xmldsig#&#34;&gt;&#xA;&#x9;&#x9;&#x9;&lt;SignedInfo&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;CanonicalizationMethod Algorithm=&#34;http://www.w3.org/TR/2001/REC-xml-c14n-20010315&#34;/&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;SignatureMethod Algorithm=&#34;http://www.w3.org/2000/09/xmldsig#rsa-sha1&#34;/&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;Reference URI=&#34;&#34;&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;Transforms&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;Transform Algorithm=&#34;http://www.w3.org/2000/09/xmldsig#enveloped-signature&#34;/&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;/Transforms&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;DigestMethod Algorithm=&#34;http://www.w3.org/2000/09/xmldsig#sha1&#34;/&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;DigestValue&gt;ZGlnZXN0LXNpbXVsYWRv&lt;/DigestValue&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;/Reference&gt;&#xA;&#x9;&#x9;&#x9;&lt;/SignedInfo&gt;&#xA;&#x9;&#x9;&#x9;&lt;SignatureValue&gt;FIRMA_RSA_SIMULADA&lt;/SignatureValue&gt;&#xA;&#x9;&#x9;&#x9;&lt;KeyInfo&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;X509Data&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&#x9;&lt;X509Certificate&gt;Y2VydGlmaWNhZG8tc2ltdWxhZG8=&lt;/X509Certificate&gt;&#xA;&#x9;&#x9;&#x9;&#x9;&lt;/X509Data&gt;&#xA;&#x9;&#x9;&#x9;&lt;/KeyInfo&gt;&#xA;&#x9;&#x9;&lt;/Signature&gt;&lt;/DTE&gt;</DTE>
+  </SetDTE>
+</EnvioSII>

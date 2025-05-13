@@ -1,0 +1,38 @@
+{
+    "hasTaxes": true,
+    "details": [
+        {
+            "product": {
+                "unit": {
+                    "code": "UN"
+                },
+                "price": 1000.0,
+                "name": "Producto 1",
+                "code": "P001"
+            },
+            "position": 1,
+            "quantity": 2.0
+        },
+        {
+            "product": {
+                "unit": {
+                    "code": "UN"
+                },
+                "price": 2000.0,
+                "name": "Producto 2",
+                "code": "P002"
+            },
+            "position": 2,
+            "quantity": 1.0
+        }
+    ],
+    "client": {
+        "address": "AVENIDA PRINCIPAL 456",
+        "name": "CLIENTE DE PRUEBA SPA",
+        "municipality": "SANTIAGO",
+        "line": "VENTA DE PRODUCTOS",
+        "code": "77.123.456-7"
+    },
+    "date": "2024-01-15",
+    "currency": "CLP"
+} 

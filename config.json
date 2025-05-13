@@ -1,0 +1,73 @@
+{
+    "empresa": {
+        "rut": "76.123.456-7",
+        "razonSocial": "EMPRESA DE PRUEBA SPA",
+        "giro": "VENTA DE PRODUCTOS",
+        "correo": "contacto@empresa.cl",
+        "actecos": [
+            "123456"
+        ],
+        "direccion": "CALLE PRINCIPAL 123",
+        "comuna": "SANTIAGO",
+        "ciudad": "SANTIAGO"
+    },
+    "resolucion": {
+        "numero": "123456",
+        "fecha": "2024-01-01"
+    },
+    "firma": {
+        "rut": "76.123.456-7",
+        "certificado": "certificado.p12",
+        "password": "123456"
+    },
+    "server": {
+        "port": 8080,
+        "host": "localhost",
+        "readTimeout": 30,
+        "writeTimeout": 30
+    },
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "user": "postgres",
+        "password": "postgres",
+        "name": "fmgo",
+        "sslMode": "disable"
+    },
+    "sii": {
+        "baseUrl": "https://maullin.sii.cl/DTEWS/",
+        "timeout": 30,
+        "retryCount": 3,
+        "retryDelay": 5,
+        "certPath": "cert/cert.p12",
+        "keyPath": "cert/key.pem",
+        "certPassword": ""
+    },
+    "logging": {
+        "level": "info",
+        "filePath": "logs/fmgo.log",
+        "maxSize": 10,
+        "maxBackups": 5,
+        "maxAge": 30,
+        "compress": true
+    },
+    "security": {
+        "jwtSecret": "default-secret-key-change-in-production",
+        "jwtExpiration": 24,
+        "corsEnabled": true,
+        "corsOrigins": [
+            "*"
+        ]
+    },
+    "supabase": {
+        "url": "https://hptxgcuajsdupooptsax.supabase.co",
+        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-key",
+        "serviceKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-service-key",
+        "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-anon-key",
+        "timeout": 30,
+        "maxRetries": 3,
+        "tablaDocumentos": "documentos",
+        "tablaEmpresas": "empresas",
+        "tablaUsuarios": "usuarios"
+    }
+}

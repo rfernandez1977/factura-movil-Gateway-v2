@@ -1,0 +1,38 @@
+{
+    "hasTaxes": true,
+    "details": [
+        {
+            "product": {
+                "unit": {
+                    "code": "UND"
+                },
+                "price": 50000,
+                "name": "Desarrollo de Software - Test 1",
+                "code": "TEST-1"
+            },
+            "position": 1,
+            "quantity": 1
+        },
+        {
+            "product": {
+                "unit": {
+                    "code": "HRS"
+                },
+                "price": 25000,
+                "name": "Soporte Técnico",
+                "code": "SOP-1"
+            },
+            "position": 2,
+            "quantity": 2
+        }
+    ],
+    "client": {
+        "address": "APOQUINDO 6410 OF 605",
+        "name": "EMPRESA DE PRUEBA SPA",
+        "municipality": "LAS CONDES",
+        "line": "DESARROLLO DE SOFTWARE",
+        "code": "76555555-5"
+    },
+    "date": "2024-05-05",
+    "currency": "CLP"
+} 
