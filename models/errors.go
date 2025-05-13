@@ -255,3 +255,22 @@ type ReporteErrores struct {
 	TiempoPromedioResolucion int64          `bson:"tiempo_promedio_resolucion" json:"tiempo_promedio_resolucion"`
 	FechaGeneracion          time.Time      `bson:"fecha_generacion" json:"fecha_generacion"`
 }
+
+// ValidationError representa un error de validación en un modelo
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+// Error implementa la interfaz error
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("Error de validación en campo '%s': %s", e.Field, e.Message)
+}
+
+// NewValidationError crea un nuevo error de validación
+func NewValidationError(field, message string) *ValidationError {
+	return &ValidationError{
+		Field:   field,
+		Message: message,
+	}
+}

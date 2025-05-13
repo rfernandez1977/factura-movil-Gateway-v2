@@ -39,19 +39,54 @@ type FRMAXMLModel struct {
 	Valor     string `xml:",chardata"`
 }
 
-// CAF representa un certificado de autorización de folios
+// CAF representa un Código de Autorización de Folios
 type CAF struct {
-	ID                string    `json:"id" bson:"_id,omitempty"`
-	RutEmisor         string    `json:"rut_emisor" bson:"rut_emisor"`
-	TipoDTE           string    `json:"tipo_dte" bson:"tipo_dte"`
-	RangoInicio       int       `json:"rango_inicio" bson:"rango_inicio"`
-	RangoFin          int       `json:"rango_fin" bson:"rango_fin"`
-	FolioActual       int       `json:"folio_actual" bson:"folio_actual"`
-	Estado            string    `json:"estado" bson:"estado"`
-	FechaAutorizacion time.Time `json:"fecha_autorizacion" bson:"fecha_autorizacion"`
-	XML               []byte    `json:"xml" bson:"xml"`
-	CreatedAt         time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at" bson:"updated_at"`
+	ID               string    `json:"id" db:"id"`
+	EmpresaID        string    `json:"empresa_id" db:"empresa_id"`
+	TipoDocumento    string    `json:"tipo_documento" db:"tipo_documento"`
+	Desde            int       `json:"desde" db:"desde"`
+	Hasta            int       `json:"hasta" db:"hasta"`
+	Archivo          []byte    `json:"archivo" db:"archivo"`
+	FechaVencimiento string    `json:"fecha_vencimiento" db:"fecha_vencimiento"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// NewCAF crea una nueva instancia de CAF
+func NewCAF(empresaID, tipoDocumento string, desde, hasta int, archivo []byte, fechaVencimiento string) *CAF {
+	return &CAF{
+		EmpresaID:        empresaID,
+		TipoDocumento:    tipoDocumento,
+		Desde:            desde,
+		Hasta:            hasta,
+		Archivo:          archivo,
+		FechaVencimiento: fechaVencimiento,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+}
+
+// Validate valida que todos los campos obligatorios estén presentes
+func (c *CAF) Validate() error {
+	if c.EmpresaID == "" {
+		return &ValidationError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
+	}
+	if c.TipoDocumento == "" {
+		return &ValidationError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
+	}
+	if c.Desde <= 0 {
+		return &ValidationError{Field: "desde", Message: "El rango inicial debe ser mayor a cero"}
+	}
+	if c.Hasta <= 0 {
+		return &ValidationError{Field: "hasta", Message: "El rango final debe ser mayor a cero"}
+	}
+	if c.Hasta < c.Desde {
+		return &ValidationError{Field: "hasta", Message: "El rango final debe ser mayor o igual al rango inicial"}
+	}
+	if c.Archivo == nil || len(c.Archivo) == 0 {
+		return &ValidationError{Field: "archivo", Message: "El archivo del CAF es obligatorio"}
+	}
+	return nil
 }
 
 // CAFRequest representa una solicitud de CAF

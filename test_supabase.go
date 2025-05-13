@@ -13,13 +13,11 @@ import (
 )
 
 func main() {
-	// Simplificamos para enfocarnos solo en la verificación de conexión a Supabase
 	fmt.Println("=== FMgo - Verificación de Conexión a Supabase ===")
-
-	ejecutarVerificacionConexion()
+	verificarConexionSupabase()
 }
 
-func ejecutarVerificacionConexion() {
+func verificarConexionSupabase() {
 	fmt.Println("Verificando la conexión con Supabase...")
 
 	// Imprimir variables de entorno para diagnóstico
@@ -31,37 +29,21 @@ func ejecutarVerificacionConexion() {
 	}
 
 	// Cargar la configuración
-	// Intentar cargar desde diferentes ubicaciones relativas
-	configPaths := []string{
-		"../../config.json", // Desde el directorio del ejecutable (examples/supabase_example)
-		"../config.json",    // Desde el directorio examples
-		"config.json",       // Desde el directorio actual
-	}
+	configPath := "config.json"
+	absPath, _ := filepath.Abs(configPath)
+	fmt.Printf("Intentando cargar configuración desde: %s\n", absPath)
 
-	var cfg *config.Config
-	var err error
-
-	for _, path := range configPaths {
-		absPath, _ := filepath.Abs(path)
-		fmt.Printf("Intentando cargar configuración desde: %s\n", absPath)
-		cfg, err = config.Load(path)
-		if err == nil {
-			fmt.Printf("Configuración cargada correctamente desde: %s\n", absPath)
-			break
-		}
-	}
-
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Error al cargar la configuración: %v", err)
 	}
 
+	fmt.Printf("Configuración cargada correctamente desde: %s\n", absPath)
+
 	fmt.Println("\nConfiguración de Supabase:")
 	fmt.Printf("- Supabase URL: %s\n", cfg.Supabase.URL)
-	fmt.Printf("- Database Host: %s\n", cfg.Database.Host)
-	fmt.Printf("- Database Port: %d\n", cfg.Database.Port)
-	fmt.Printf("- Database Name: %s\n", cfg.Database.Name)
-	fmt.Printf("- Database User: %s\n", cfg.Database.User)
-	fmt.Printf("- SSL Mode: %s\n", cfg.Database.SSLMode)
+	fmt.Printf("- API Key: %s...\n", cfg.Supabase.APIKey[:20])
+	fmt.Printf("- Anon Key: %s...\n", cfg.Supabase.AnonKey[:20])
 
 	// Establecer variables de entorno manualmente antes de crear el cliente
 	os.Setenv("SUPABASE_URL", cfg.Supabase.URL)

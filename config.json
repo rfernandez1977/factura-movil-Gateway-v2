@@ -27,12 +27,12 @@
         "writeTimeout": 30
     },
     "database": {
-        "host": "localhost",
-        "port": 5432,
-        "user": "postgres",
-        "password": "postgres",
-        "name": "fmgo",
-        "sslMode": "disable"
+        "host": "aws-0-us-west-1.pooler.supabase.com",
+        "port": 6543,
+        "user": "postgres.hptxgcuajsdupooptsax",
+        "password": "rTFJE9FdUiJg2emR",
+        "name": "postgres",
+        "sslMode": "require"
     },
     "sii": {
         "baseUrl": "https://maullin.sii.cl/DTEWS/",
@@ -61,9 +61,9 @@
     },
     "supabase": {
         "url": "https://hptxgcuajsdupooptsax.supabase.co",
-        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-key",
-        "serviceKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-service-key",
-        "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example-anon-key",
+        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdHhnY3VhanNkdXBvb3B0c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzU0NTksImV4cCI6MjA2MTY1MTQ1OX0.RXfZQSN90uIMa9oEZOoqmAIrm8mWafBKaxM461d_E9c",
+        "serviceKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdHhnY3VhanNkdXBvb3B0c2F4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3NTQ1OSwiZXhwIjoyMDYxNjUxNDU5fQ.GHF60p6hnBvfpZaxxtFE5SjQtdbkRpppjdjkmJq0GoU",
+        "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdHhnY3VhanNkdXBvb3B0c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzU0NTksImV4cCI6MjA2MTY1MTQ1OX0.RXfZQSN90uIMa9oEZOoqmAIrm8mWafBKaxM461d_E9c",
         "timeout": 30,
         "maxRetries": 3,
         "tablaDocumentos": "documentos",
