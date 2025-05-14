@@ -8,6 +8,18 @@ import (
 	"github.com/cursor/FMgo/models"
 )
 
+// CodigoError representa los códigos de error de validación
+type CodigoError string
+
+// Códigos de error de validación
+const (
+	ErrorValidacionSchema  CodigoError = "SCHEMA"
+	ErrorValidacionFormato CodigoError = "FORMATO"
+	ErrorValidacionNegocio CodigoError = "NEGOCIO"
+	ErrorValidacionFirma   CodigoError = "FIRMA"
+	ErrorValidacionSII     CodigoError = "SII"
+)
+
 // SIIValidator maneja las validaciones específicas del SII
 // Se renombra para evitar conflictos con otras declaraciones
 type SIIValidator struct {
@@ -25,6 +37,79 @@ type ConfiguracionValidacion struct {
 	ValidarCAF        bool
 	ValidarFirma      bool
 	ValidarSchema     bool
+}
+
+// DTEXMLModel representa un DTE en formato XML
+type DTEXMLModel struct {
+	Documento *DocumentoXMLModel
+	Signature *FirmaXMLModel
+}
+
+// DocumentoXMLModel representa la estructura de un documento XML
+type DocumentoXMLModel struct {
+	Encabezado EncabezadoXMLModel
+	Detalle    []DetalleDTEXML
+}
+
+// EncabezadoXMLModel representa el encabezado de un DTE en formato XML
+type EncabezadoXMLModel struct {
+	IdDoc    IDDocumentoXMLModel
+	Emisor   EmisorXMLModel
+	Receptor ReceptorXMLModel
+	Totales  TotalesXMLModel
+}
+
+// IDDocumentoXMLModel representa la identificación del documento en XML
+type IDDocumentoXMLModel struct {
+	TipoDTE      string
+	Folio        int
+	FechaEmision string
+}
+
+// EmisorXMLModel representa al emisor en formato XML
+type EmisorXMLModel struct {
+	RUT         string
+	RazonSocial string
+	Giro        string
+	Direccion   string
+	Comuna      string
+	Ciudad      string
+}
+
+// ReceptorXMLModel representa al receptor en formato XML
+type ReceptorXMLModel struct {
+	RUT         string
+	RazonSocial string
+	Giro        string
+	Direccion   string
+	Comuna      string
+	Ciudad      string
+}
+
+// TotalesXMLModel representa los totales en formato XML
+type TotalesXMLModel struct {
+	MntTotal int64
+	MntNeto  *int64
+	IVA      *int64
+}
+
+// DetalleDTEXML representa un detalle de DTE en XML
+type DetalleDTEXML struct {
+	NroLinDet  int
+	Nombre     string
+	Cantidad   float64
+	PrecioUnit float64
+	MontoItem  float64
+}
+
+// FirmaXMLModel representa la firma electrónica en formato XML
+type FirmaXMLModel struct {
+	SignatureValue string
+	KeyInfo        struct {
+		X509Data struct {
+			X509Certificate string
+		}
+	}
 }
 
 // NewSIIValidator crea una nueva instancia del servicio de validación
@@ -51,7 +136,7 @@ func (v *SIIValidator) ValidarDocumento(doc interface{}) error {
 	v.errores = make([]models.ErrorValidacion, 0)
 
 	switch d := doc.(type) {
-	case *models.DTEXMLModel:
+	case *DTEXMLModel:
 		return v.validarDTE(d)
 	case *models.RespuestaSII:
 		return v.validarRespuestaSII(d)
@@ -78,21 +163,14 @@ func (v *SIIValidator) ValidarRespuesta(respuesta *models.RespuestaSII) error {
 		return errors.New("estado no proporcionado")
 	}
 
-	// Validar fechas
-	if respuesta.FechaProceso.IsZero() {
-		return errors.New("fecha de proceso no proporcionada")
-	}
-
-	// Validar errores
-	if respuesta.Estado == "RECHAZADO" && len(respuesta.Errores) == 0 {
-		return errors.New("documento rechazado sin errores especificados")
-	}
+	// No validamos FechaProceso ya que no existe en el tipo actual
+	// Tampoco validamos Errores por la misma razón
 
 	return nil
 }
 
 // validarDTE valida un DTE según las reglas del SII
-func (v *SIIValidator) validarDTE(dte *models.DTEXMLModel) error {
+func (v *SIIValidator) validarDTE(dte *DTEXMLModel) error {
 	if err := v.validarEncabezado(dte.Documento.Encabezado); err != nil {
 		return err
 	}
@@ -119,7 +197,7 @@ func (v *SIIValidator) validarDTE(dte *models.DTEXMLModel) error {
 }
 
 // validarEncabezado valida el encabezado del DTE
-func (v *SIIValidator) validarEncabezado(enc models.EncabezadoXMLModel) error {
+func (v *SIIValidator) validarEncabezado(enc EncabezadoXMLModel) error {
 	if err := v.validarIdDoc(enc.IdDoc); err != nil {
 		return err
 	}
@@ -136,29 +214,29 @@ func (v *SIIValidator) validarEncabezado(enc models.EncabezadoXMLModel) error {
 }
 
 // validarIdDoc valida la identificación del documento
-func (v *SIIValidator) validarIdDoc(id models.IDDocumentoXMLModel) error {
+func (v *SIIValidator) validarIdDoc(id IDDocumentoXMLModel) error {
 	// Validar tipo de documento
 	if id.TipoDTE == "" {
-		v.agregarError(models.ErrorValidacionSchema, "TipoDTE", "Tipo de documento no especificado")
+		v.agregarError(ErrorValidacionSchema, "TipoDTE", "Tipo de documento no especificado")
 	}
 
 	// Validar folio
 	if id.Folio <= 0 {
-		v.agregarError(models.ErrorValidacionSchema, "Folio", "Folio inválido")
+		v.agregarError(ErrorValidacionSchema, "Folio", "Folio inválido")
 	}
 
 	// Validar fecha de emisión
 	fechaEmision, err := time.Parse("2006-01-02", id.FechaEmision)
 	if err != nil {
-		v.agregarError(models.ErrorValidacionFormato, "FechaEmision", "Formato de fecha inválido")
+		v.agregarError(ErrorValidacionFormato, "FechaEmision", "Formato de fecha inválido")
 	} else {
 		// Validar que la fecha no sea futura
 		if fechaEmision.After(time.Now()) {
-			v.agregarError(models.ErrorValidacionNegocio, "FechaEmision", "Fecha de emisión futura no permitida")
+			v.agregarError(ErrorValidacionNegocio, "FechaEmision", "Fecha de emisión futura no permitida")
 		}
 		// Validar antigüedad máxima
 		if time.Since(fechaEmision).Hours() > float64(v.config.MaxDiasAntiguedad*24) {
-			v.agregarError(models.ErrorValidacionNegocio, "FechaEmision", "Documento excede antigüedad máxima permitida")
+			v.agregarError(ErrorValidacionNegocio, "FechaEmision", "Documento excede antigüedad máxima permitida")
 		}
 	}
 
@@ -166,90 +244,90 @@ func (v *SIIValidator) validarIdDoc(id models.IDDocumentoXMLModel) error {
 }
 
 // validarEmisor valida los datos del emisor
-func (v *SIIValidator) validarEmisor(emisor models.EmisorXMLModel) error {
+func (v *SIIValidator) validarEmisor(emisor EmisorXMLModel) error {
 	if emisor.RUT == "" {
-		v.agregarError(models.ErrorValidacionSchema, "RUTEmisor", "RUT del emisor no especificado")
+		v.agregarError(ErrorValidacionSchema, "RUTEmisor", "RUT del emisor no especificado")
 	} else if !v.validarFormatoRUT(emisor.RUT) {
-		v.agregarError(models.ErrorValidacionFormato, "RUTEmisor", "Formato de RUT inválido")
+		v.agregarError(ErrorValidacionFormato, "RUTEmisor", "Formato de RUT inválido")
 	}
 
 	if emisor.RazonSocial == "" {
-		v.agregarError(models.ErrorValidacionSchema, "RznSoc", "Razón social no especificada")
+		v.agregarError(ErrorValidacionSchema, "RznSoc", "Razón social no especificada")
 	}
 
 	if emisor.Giro == "" {
-		v.agregarError(models.ErrorValidacionSchema, "GiroEmis", "Giro no especificado")
+		v.agregarError(ErrorValidacionSchema, "GiroEmis", "Giro no especificado")
 	}
 
 	if emisor.Direccion == "" {
-		v.agregarError(models.ErrorValidacionSchema, "DirOrigen", "Dirección no especificada")
+		v.agregarError(ErrorValidacionSchema, "DirOrigen", "Dirección no especificada")
 	}
 
 	if emisor.Comuna == "" {
-		v.agregarError(models.ErrorValidacionSchema, "CmnaOrigen", "Comuna no especificada")
+		v.agregarError(ErrorValidacionSchema, "CmnaOrigen", "Comuna no especificada")
 	}
 
 	if emisor.Ciudad == "" {
-		v.agregarError(models.ErrorValidacionSchema, "CiudadOrigen", "Ciudad no especificada")
+		v.agregarError(ErrorValidacionSchema, "CiudadOrigen", "Ciudad no especificada")
 	}
 
 	return nil
 }
 
 // validarReceptor valida los datos del receptor
-func (v *SIIValidator) validarReceptor(receptor models.ReceptorXMLModel) error {
+func (v *SIIValidator) validarReceptor(receptor ReceptorXMLModel) error {
 	if receptor.RUT == "" {
-		v.agregarError(models.ErrorValidacionSchema, "RUTRecep", "RUT del receptor no especificado")
+		v.agregarError(ErrorValidacionSchema, "RUTRecep", "RUT del receptor no especificado")
 	} else if !v.validarFormatoRUT(receptor.RUT) {
-		v.agregarError(models.ErrorValidacionFormato, "RUTRecep", "Formato de RUT inválido")
+		v.agregarError(ErrorValidacionFormato, "RUTRecep", "Formato de RUT inválido")
 	}
 
 	if receptor.RazonSocial == "" {
-		v.agregarError(models.ErrorValidacionSchema, "RznSocRecep", "Razón social no especificada")
+		v.agregarError(ErrorValidacionSchema, "RznSocRecep", "Razón social no especificada")
 	}
 
 	if receptor.Giro == "" {
-		v.agregarError(models.ErrorValidacionSchema, "GiroRecep", "Giro no especificado")
+		v.agregarError(ErrorValidacionSchema, "GiroRecep", "Giro no especificado")
 	}
 
 	if receptor.Direccion == "" {
-		v.agregarError(models.ErrorValidacionSchema, "DirRecep", "Dirección no especificada")
+		v.agregarError(ErrorValidacionSchema, "DirRecep", "Dirección no especificada")
 	}
 
 	if receptor.Comuna == "" {
-		v.agregarError(models.ErrorValidacionSchema, "CmnaRecep", "Comuna no especificada")
+		v.agregarError(ErrorValidacionSchema, "CmnaRecep", "Comuna no especificada")
 	}
 
 	if receptor.Ciudad == "" {
-		v.agregarError(models.ErrorValidacionSchema, "CiudadRecep", "Ciudad no especificada")
+		v.agregarError(ErrorValidacionSchema, "CiudadRecep", "Ciudad no especificada")
 	}
 
 	return nil
 }
 
 // validarDetalle valida el detalle del DTE
-func (v *SIIValidator) validarDetalle(detalle []models.DetalleDTEXML) error {
+func (v *SIIValidator) validarDetalle(detalle []DetalleDTEXML) error {
 	if len(detalle) == 0 {
-		v.agregarError(models.ErrorValidacionSchema, "Detalle", "Detalle no especificado")
+		v.agregarError(ErrorValidacionSchema, "Detalle", "Detalle no especificado")
 		return nil
 	}
 
 	if len(detalle) > v.config.MaxItems {
-		v.agregarError(models.ErrorValidacionNegocio, "Detalle", fmt.Sprintf("Número de ítems excede el máximo permitido (%d)", v.config.MaxItems))
+		v.agregarError(ErrorValidacionNegocio, "Detalle", fmt.Sprintf("Número de ítems excede el máximo permitido (%d)", v.config.MaxItems))
 		return nil
 	}
 
 	for i, item := range detalle {
 		if item.NroLinDet <= 0 {
-			v.agregarError(models.ErrorValidacionSchema, fmt.Sprintf("Detalle[%d].NroLinDet", i), "Número de línea inválido")
+			v.agregarError(ErrorValidacionSchema, fmt.Sprintf("Detalle[%d].NroLinDet", i), "Número de línea inválido")
 		}
 
 		if item.Nombre == "" {
-			v.agregarError(models.ErrorValidacionSchema, fmt.Sprintf("Detalle[%d].NmbItem", i), "Nombre del ítem no especificado")
+			v.agregarError(ErrorValidacionSchema, fmt.Sprintf("Detalle[%d].NmbItem", i), "Nombre del ítem no especificado")
 		}
 
 		if item.MontoItem <= 0 {
-			v.agregarError(models.ErrorValidacionNegocio, fmt.Sprintf("Detalle[%d].MontoItem", i), "Monto del ítem debe ser mayor a cero")
+			v.agregarError(ErrorValidacionNegocio, fmt.Sprintf("Detalle[%d].MontoItem", i), "Monto del ítem debe ser mayor a cero")
 		}
 	}
 
@@ -257,13 +335,13 @@ func (v *SIIValidator) validarDetalle(detalle []models.DetalleDTEXML) error {
 }
 
 // validarTotales valida los totales del DTE
-func (v *SIIValidator) validarTotales(totales models.TotalesXMLModel) error {
+func (v *SIIValidator) validarTotales(totales TotalesXMLModel) error {
 	if totales.MntTotal <= 0 {
-		v.agregarError(models.ErrorValidacionNegocio, "MntTotal", "Monto total debe ser mayor a cero")
+		v.agregarError(ErrorValidacionNegocio, "MntTotal", "Monto total debe ser mayor a cero")
 	}
 
 	if totales.MntTotal > int64(v.config.MaxMontoTotal) {
-		v.agregarError(models.ErrorValidacionNegocio, "MntTotal", fmt.Sprintf("Monto total excede el máximo permitido (%f)", v.config.MaxMontoTotal))
+		v.agregarError(ErrorValidacionNegocio, "MntTotal", fmt.Sprintf("Monto total excede el máximo permitido (%f)", v.config.MaxMontoTotal))
 	}
 
 	// Validar IVA si corresponde
@@ -278,13 +356,13 @@ func (v *SIIValidator) validarTotales(totales models.TotalesXMLModel) error {
 }
 
 // validarFirma valida la firma del DTE
-func (v *SIIValidator) validarFirma(firma *models.FirmaXMLModel) error {
+func (v *SIIValidator) validarFirma(firma *FirmaXMLModel) error {
 	if firma.SignatureValue == "" {
-		v.agregarError(models.ErrorValidacionFirma, "SignatureValue", "Valor de firma no especificado")
+		v.agregarError(ErrorValidacionFirma, "SignatureValue", "Valor de firma no especificado")
 	}
 
 	if firma.KeyInfo.X509Data.X509Certificate == "" {
-		v.agregarError(models.ErrorValidacionFirma, "X509Certificate", "Certificado no especificado")
+		v.agregarError(ErrorValidacionFirma, "X509Certificate", "Certificado no especificado")
 	}
 
 	return nil
@@ -293,16 +371,14 @@ func (v *SIIValidator) validarFirma(firma *models.FirmaXMLModel) error {
 // validarRespuestaSII valida una respuesta del SII
 func (v *SIIValidator) validarRespuestaSII(resp *models.RespuestaSII) error {
 	if resp.Estado == "" {
-		v.agregarError(models.ErrorValidacionSchema, "Estado", "Estado no especificado")
+		v.agregarError(ErrorValidacionSchema, "Estado", "Estado no especificado")
 	}
 
 	if resp.TrackID == "" {
-		v.agregarError(models.ErrorValidacionSchema, "TrackID", "TrackID no especificado")
+		v.agregarError(ErrorValidacionSchema, "TrackID", "TrackID no especificado")
 	}
 
-	if resp.FechaProceso.IsZero() {
-		v.agregarError(models.ErrorValidacionSchema, "FechaProceso", "Fecha de proceso no especificada")
-	}
+	// No validamos FechaProceso ya que no existe en el modelo actual
 
 	return nil
 }
@@ -310,23 +386,21 @@ func (v *SIIValidator) validarRespuestaSII(resp *models.RespuestaSII) error {
 // validarEstadoSII valida un estado del SII
 func (v *SIIValidator) validarEstadoSII(estado *models.EstadoSII) error {
 	if estado.Estado == "" {
-		v.agregarError(models.ErrorValidacionSchema, "Estado", "Estado no especificado")
+		v.agregarError(ErrorValidacionSchema, "Estado", "Estado no especificado")
 	}
 
-	if estado.TrackID == "" {
-		v.agregarError(models.ErrorValidacionSchema, "TrackID", "TrackID no especificado")
-	}
+	// No validamos TrackID ya que no existe en el modelo actual
 
 	return nil
 }
 
 // agregarError agrega un error de validación a la lista
-func (v *SIIValidator) agregarError(codigo models.CodigoError, campo, mensaje string) {
+func (v *SIIValidator) agregarError(codigo CodigoError, campo, mensaje string) {
 	v.errores = append(v.errores, models.ErrorValidacion{
 		Codigo:    string(codigo),
 		Campo:     campo,
 		Mensaje:   mensaje,
-		Timestamp: time.Now(),
+		Timestamp: time.Now().Format(time.RFC3339),
 	})
 }
 

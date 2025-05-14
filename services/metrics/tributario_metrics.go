@@ -103,86 +103,33 @@ func (m *TributarioMetrics) registrarMetricasImpuestos(doc interface{}) {
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Obtener impuestos adicionales de los items
-		for _, item := range d.Items {
-			for _, impAdicional := range item.ImpuestosAdicionales {
-				impuestosAdicionales = append(impuestosAdicionales, models.ImpuestoAdicional{
-					Codigo:        impAdicional.Codigo,
-					Nombre:        impAdicional.Nombre,
-					Porcentaje:    impAdicional.Porcentaje,
-					Monto:         impAdicional.Monto,
-					BaseImponible: impAdicional.BaseImponible,
-				})
-			}
-		}
+		// Para Factura no obtenemos impuestos adicionales aquí porque domain.Item no los tiene
+		// Si necesitas impuestos adicionales, deberás modificar tu estructura domain.Item para incluirlos
 	case *models.Boleta:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Obtener impuestos adicionales de los items
-		for _, item := range d.Items {
-			for _, impAdicional := range item.ImpuestosAdicionales {
-				impuestosAdicionales = append(impuestosAdicionales, models.ImpuestoAdicional{
-					Codigo:        impAdicional.Codigo,
-					Nombre:        impAdicional.Nombre,
-					Porcentaje:    impAdicional.Porcentaje,
-					Monto:         impAdicional.Monto,
-					BaseImponible: impAdicional.BaseImponible,
-				})
-			}
-		}
+		// Para Boleta no obtenemos impuestos adicionales aquí porque DetalleBoleta no los tiene
+		// Si necesitas impuestos adicionales, deberás modificar tu estructura DetalleBoleta para incluirlos
 	case *models.NotaCredito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Obtener impuestos adicionales de los items
-		for _, item := range d.Items {
-			for _, impAdicional := range item.ImpuestosAdicionales {
-				impuestosAdicionales = append(impuestosAdicionales, models.ImpuestoAdicional{
-					Codigo:        impAdicional.Codigo,
-					Nombre:        impAdicional.Nombre,
-					Porcentaje:    impAdicional.Porcentaje,
-					Monto:         impAdicional.Monto,
-					BaseImponible: impAdicional.BaseImponible,
-				})
-			}
-		}
+		// Para NotaCredito usamos la misma lógica
 	case *models.NotaDebito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Obtener impuestos adicionales de los items
-		for _, item := range d.Items {
-			for _, impAdicional := range item.ImpuestosAdicionales {
-				impuestosAdicionales = append(impuestosAdicionales, models.ImpuestoAdicional{
-					Codigo:        impAdicional.Codigo,
-					Nombre:        impAdicional.Nombre,
-					Porcentaje:    impAdicional.Porcentaje,
-					Monto:         impAdicional.Monto,
-					BaseImponible: impAdicional.BaseImponible,
-				})
-			}
-		}
+		// Para NotaDebito usamos la misma lógica
 	case *models.GuiaDespacho:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Obtener impuestos adicionales de los items
-		for _, item := range d.Items {
-			for _, impAdicional := range item.ImpuestosAdicionales {
-				impuestosAdicionales = append(impuestosAdicionales, models.ImpuestoAdicional{
-					Codigo:        impAdicional.Codigo,
-					Nombre:        impAdicional.Nombre,
-					Porcentaje:    impAdicional.Porcentaje,
-					Monto:         impAdicional.Monto,
-					BaseImponible: impAdicional.BaseImponible,
-				})
-			}
-		}
+		// Para GuiaDespacho usamos la misma lógica
 	}
 
 	// Registrar métricas de impuestos
@@ -213,9 +160,7 @@ func (m *TributarioMetrics) CollectMetrics(doc interface{}) error {
 		}
 	case *models.Boleta:
 		// Métricas específicas de boleta
-		if d.MedioPago != "" {
-			// Registrar medio de pago (se podría agregar a las métricas)
-		}
+		// No usamos d.MedioPago ya que no existe en la estructura actual
 	case *models.NotaCredito:
 		// Métricas específicas de nota de crédito
 		if d.TipoReferencia != "" {
@@ -239,7 +184,6 @@ func (m *TributarioMetrics) CollectMetrics(doc interface{}) error {
 // ObtenerImpuestosAdicionales obtiene los impuestos adicionales de los items de tipo domain.Item
 func (s *TributarioMetrics) ObtenerImpuestosAdicionales(items []domain.Item) []models.ImpuestoAdicional {
 	var impuestos []models.ImpuestoAdicional
-	impuestosMap := make(map[string]models.ImpuestoAdicional)
 
 	// En el caso de domain.Item, no tenemos el campo ImpuestosAdicionales
 	// Por lo tanto, devolvemos un slice vacío
@@ -249,7 +193,6 @@ func (s *TributarioMetrics) ObtenerImpuestosAdicionales(items []domain.Item) []m
 // ObtenerImpuestosAdicionalesBoleta obtiene los impuestos adicionales de los items de tipo DetalleBoleta
 func (s *TributarioMetrics) ObtenerImpuestosAdicionalesBoleta(items []*models.DetalleBoleta) []models.ImpuestoAdicional {
 	var impuestos []models.ImpuestoAdicional
-	impuestosMap := make(map[string]models.ImpuestoAdicional)
 
 	// En el caso de DetalleBoleta, no tenemos el campo ImpuestosAdicionales
 	// Por lo tanto, devolvemos un slice vacío

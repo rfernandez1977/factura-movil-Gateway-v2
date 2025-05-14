@@ -119,9 +119,12 @@ func (v *TributarioValidation) validarMontos(doc interface{}) error {
 func (v *TributarioValidation) validarReferenciasFactura(factura *models.Factura) error {
 	// Validar referencias a guías de despacho
 	for _, ref := range factura.Referencias {
-		if ref.TipoDocumento == models.TipoGuiaDespacho {
+		// Convertir el TipoDocumento de string a int para la comparación
+		tipoDocInt := 0
+		_, err := fmt.Sscanf(ref.TipoDocumento, "%d", &tipoDocInt)
+		if err == nil && tipoDocInt == int(models.TipoGuiaDespacho) {
 			// Verificar que la guía de despacho existe y está en estado correcto
-			if err := v.validarExistenciaGuiaDespacho(ref.FolioReferencia); err != nil {
+			if err := v.validarExistenciaGuiaDespacho(ref.Folio); err != nil {
 				return err
 			}
 		}
@@ -129,9 +132,11 @@ func (v *TributarioValidation) validarReferenciasFactura(factura *models.Factura
 
 	// Validar referencias a notas de crédito/débito
 	for _, ref := range factura.Referencias {
-		if ref.TipoDocumento == models.TipoNotaCredito || ref.TipoDocumento == models.TipoNotaDebito {
+		tipoDocInt := 0
+		_, err := fmt.Sscanf(ref.TipoDocumento, "%d", &tipoDocInt)
+		if err == nil && (tipoDocInt == int(models.TipoNotaCredito) || tipoDocInt == int(models.TipoNotaDebito)) {
 			// Verificar que la nota existe y está en estado correcto
-			if err := v.validarExistenciaNota(ref.FolioReferencia); err != nil {
+			if err := v.validarExistenciaNota(ref.Folio); err != nil {
 				return err
 			}
 		}
@@ -174,78 +179,42 @@ func (v *TributarioValidation) validarCalculosImpuestos(doc interface{}) error {
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Los impuestos adicionales se calcularán de los items
-		for _, item := range d.Items {
-			for _, impuesto := range item.ImpuestosAdicionales {
-				totalImpuestosAdicionales += impuesto.Monto
 
-				// Validar código de impuesto
-				if !v.validarCodigoImpuesto(impuesto.Codigo) {
-					return fmt.Errorf("código de impuesto no válido: %s", impuesto.Codigo)
-				}
+		// No podemos acceder a impuestos adicionales en domain.Item
+		// Si necesitas impuestos adicionales, deberás implementar un método para obtenerlos
+		// desde otra fuente o modificar la estructura domain.Item
 
-				// Validar porcentaje
-				if impuesto.Porcentaje < 0 || impuesto.Porcentaje > 100 {
-					return fmt.Errorf("porcentaje de impuesto no válido: %.2f", impuesto.Porcentaje)
-				}
-
-				// Validar base imponible
-				if impuesto.BaseImponible < 0 {
-					return fmt.Errorf("base imponible no puede ser negativa: %.2f", impuesto.BaseImponible)
-				}
-
-				// Validar monto calculado con tolerancia
-				montoCalculado := math.Round((impuesto.BaseImponible*(impuesto.Porcentaje/100))*100) / 100
-				if math.Abs(montoCalculado-impuesto.Monto) > toleranciaMontos {
-					return fmt.Errorf("el monto del impuesto calculado (%.2f) no coincide con el monto proporcionado (%.2f), diferencia: %.2f, tolerancia máxima: %.2f",
-						montoCalculado, impuesto.Monto, math.Abs(montoCalculado-impuesto.Monto), toleranciaMontos)
-				}
-			}
-		}
 	case *models.Boleta:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Los impuestos adicionales se calcularán de los items
-		for _, item := range d.Items {
-			for _, impuesto := range item.ImpuestosAdicionales {
-				totalImpuestosAdicionales += impuesto.Monto
-			}
-		}
+
+		// No podemos acceder a impuestos adicionales en DetalleBoleta
+
 	case *models.NotaCredito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Los impuestos adicionales se calcularán de los items
-		for _, item := range d.Items {
-			for _, impuesto := range item.ImpuestosAdicionales {
-				totalImpuestosAdicionales += impuesto.Monto
-			}
-		}
+
+		// No podemos acceder a impuestos adicionales aquí
+
 	case *models.NotaDebito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Los impuestos adicionales se calcularán de los items
-		for _, item := range d.Items {
-			for _, impuesto := range item.ImpuestosAdicionales {
-				totalImpuestosAdicionales += impuesto.Monto
-			}
-		}
+
+		// No podemos acceder a impuestos adicionales aquí
+
 	case *models.GuiaDespacho:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-		// Los impuestos adicionales se calcularán de los items
-		for _, item := range d.Items {
-			for _, impuesto := range item.ImpuestosAdicionales {
-				totalImpuestosAdicionales += impuesto.Monto
-			}
-		}
+
+		// No podemos acceder a impuestos adicionales aquí
 	}
 
 	// Validar IVA solo si hay monto neto afecto a IVA
@@ -430,12 +399,18 @@ func (v *TributarioValidation) validarReferenciasNota(nota interface{}) error {
 	}
 
 	// Verificar que el tipo de referencia sea válido
+	// Definimos tipos válidos directamente
 	validTipos := map[models.TipoReferencia]bool{
-		models.TipoReferenciaAnulacion:    true,
-		models.TipoReferenciaCorreccion:   true,
-		models.TipoReferenciaDevolucion:   true,
-		models.TipoReferenciaFactura:      true,
-		models.TipoReferenciaGuiaDespacho: true,
+		models.TipoAnula:                       true,
+		models.TipoCorrige:                     true,
+		models.TipoPreciosCantidad:             true,
+		models.TipoReferenciaInterna:           true,
+		models.TipoOtraReferencia:              true,
+		models.TipoSetPruebas:                  true,
+		models.TipoOrdenCompra:                 true,
+		models.GetReferenciaTipoGuiaDespacho(): true,
+		models.GetReferenciaTipoNotaCredito():  true,
+		models.GetReferenciaTipoNotaDebito():   true,
 	}
 
 	if !validTipos[tipoReferencia] {
@@ -485,7 +460,9 @@ func (s *TributarioValidation) ValidarReferencias(factura *models.Factura) []mod
 		}
 
 		// Validar referencias a guías de despacho
-		if ref.TipoReferencia == models.TipoGuiaDespacho && ref.TipoDocumento != fmt.Sprintf("%d", models.TipoGuiaDespacho) {
+		tipoRefGuia := models.GetReferenciaTipoGuiaDespacho()
+		tipoDocGuia := fmt.Sprintf("%d", models.TipoGuiaDespacho)
+		if ref.TipoReferencia == tipoRefGuia && ref.TipoDocumento != tipoDocGuia {
 			errors = append(errors, models.ValidationFieldError{
 				Field:   fmt.Sprintf("referencias[%d].tipo_documento", i),
 				Message: "La referencia debe ser a una guía de despacho",
@@ -493,8 +470,13 @@ func (s *TributarioValidation) ValidarReferencias(factura *models.Factura) []mod
 		}
 
 		// Validar referencias a notas de crédito/débito
-		if (ref.TipoReferencia == models.TipoNotaCredito || ref.TipoReferencia == models.TipoNotaDebito) &&
-			(ref.TipoDocumento != fmt.Sprintf("%d", models.TipoNotaCredito) && ref.TipoDocumento != fmt.Sprintf("%d", models.TipoNotaDebito)) {
+		tipoRefNC := models.GetReferenciaTipoNotaCredito()
+		tipoRefND := models.GetReferenciaTipoNotaDebito()
+		tipoDocNC := fmt.Sprintf("%d", models.TipoNotaCredito)
+		tipoDocND := fmt.Sprintf("%d", models.TipoNotaDebito)
+
+		if (ref.TipoReferencia == tipoRefNC || ref.TipoReferencia == tipoRefND) &&
+			(ref.TipoDocumento != tipoDocNC && ref.TipoDocumento != tipoDocND) {
 			errors = append(errors, models.ValidationFieldError{
 				Field:   fmt.Sprintf("referencias[%d].tipo_documento", i),
 				Message: "La referencia debe ser a una nota de crédito o débito",
@@ -509,10 +491,8 @@ func (s *TributarioValidation) ValidarReferencias(factura *models.Factura) []mod
 func (s *TributarioValidation) ValidarImpuestosAdicionalesItems(items []domain.Item) []models.ValidationFieldError {
 	var errors []models.ValidationFieldError
 
-	for i, item := range items {
-		// No se validan impuestos adicionales en items del dominio
-		// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
-	}
+	// No se validan impuestos adicionales en items del dominio
+	// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
 
 	return errors
 }
@@ -521,10 +501,8 @@ func (s *TributarioValidation) ValidarImpuestosAdicionalesItems(items []domain.I
 func (s *TributarioValidation) ValidarImpuestosAdicionalesBoleta(items []*models.DetalleBoleta) []models.ValidationFieldError {
 	var errors []models.ValidationFieldError
 
-	for i, item := range items {
-		// No se validan impuestos adicionales en los detalles de boleta
-		// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
-	}
+	// No se validan impuestos adicionales en los detalles de boleta
+	// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
 
 	return errors
 }
@@ -533,10 +511,19 @@ func (s *TributarioValidation) ValidarImpuestosAdicionalesBoleta(items []*models
 func (s *TributarioValidation) ValidarTipoReferencia(tipoReferencia models.TipoReferencia) error {
 	switch tipoReferencia {
 	case models.TipoAnula, models.TipoCorrige, models.TipoPreciosCantidad,
-		models.TipoReferenciaInterna, models.TipoGuiaDespacho, models.TipoOtraReferencia,
-		models.TipoSetPruebas, models.TipoOrdenCompra, models.TipoNotaCredito, models.TipoNotaDebito:
+		models.TipoReferenciaInterna, models.TipoOtraReferencia,
+		models.TipoSetPruebas, models.TipoOrdenCompra:
 		return nil
 	default:
+		// Comprobar tipos adicionales que no están como constantes
+		tipoGuia := models.GetReferenciaTipoGuiaDespacho()
+		tipoNC := models.GetReferenciaTipoNotaCredito()
+		tipoND := models.GetReferenciaTipoNotaDebito()
+
+		if tipoReferencia == tipoGuia || tipoReferencia == tipoNC || tipoReferencia == tipoND {
+			return nil
+		}
+
 		return fmt.Errorf("tipo de referencia no válido: %s", tipoReferencia)
 	}
 }

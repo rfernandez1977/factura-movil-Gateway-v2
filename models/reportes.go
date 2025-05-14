@@ -39,6 +39,14 @@ type ErrorFrecuente struct {
 	Porcentaje  float64 `json:"porcentaje" bson:"porcentaje"`
 }
 
+// ErrorSII representa un error reportado por el SII
+type ErrorSII struct {
+	Codigo      string    `json:"codigo" bson:"codigo"`
+	Mensaje     string    `json:"mensaje" bson:"mensaje"`
+	Descripcion string    `json:"descripcion" bson:"descripcion"`
+	Timestamp   time.Time `json:"timestamp" bson:"timestamp"`
+}
+
 // DocumentoRechazado representa un documento que fue rechazado
 type DocumentoRechazado struct {
 	ID            string     `json:"id" bson:"_id"`

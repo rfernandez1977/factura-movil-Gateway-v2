@@ -71,32 +71,33 @@ type Documento struct {
 }
 
 // NewDocumento crea una nueva instancia de Documento
-func NewDocumento(empresaID, tipoDocumento, numeroDocumento, fechaEmision string, monto float64) *Documento {
+func NewDocumento(empresaID, tipoDocumento string, folio int, fechaEmision time.Time, montoTotal float64) *Documento {
 	return &Documento{
-		EmpresaID:       empresaID,
-		TipoDocumento:   tipoDocumento,
-		NumeroDocumento: numeroDocumento,
-		FechaEmision:    fechaEmision,
-		Monto:           monto,
-		Estado:          "PENDIENTE",
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		ID:            primitive.NewObjectID(),
+		TipoDocumento: tipoDocumento,
+		Folio:         folio,
+		FechaEmision:  fechaEmision,
+		MontoTotal:    montoTotal,
+		Estado:        "PENDIENTE",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		Metadata:      map[string]interface{}{"empresa_id": empresaID},
 	}
 }
 
 // Validate valida que todos los campos obligatorios estén presentes
 func (d *Documento) Validate() error {
-	if d.EmpresaID == "" {
-		return &ValidationFieldError{Field: "empresa_id", Message: "El ID de la empresa es obligatorio"}
-	}
 	if d.TipoDocumento == "" {
 		return &ValidationFieldError{Field: "tipo_documento", Message: "El tipo de documento es obligatorio"}
 	}
-	if d.NumeroDocumento == "" {
-		return &ValidationFieldError{Field: "numero_documento", Message: "El número de documento es obligatorio"}
+	if d.Folio <= 0 {
+		return &ValidationFieldError{Field: "folio", Message: "El folio debe ser mayor a cero"}
 	}
-	if d.FechaEmision == "" {
+	if d.FechaEmision.IsZero() {
 		return &ValidationFieldError{Field: "fecha_emision", Message: "La fecha de emisión es obligatoria"}
+	}
+	if d.MontoTotal <= 0 {
+		return &ValidationFieldError{Field: "monto_total", Message: "El monto total debe ser mayor a cero"}
 	}
 	return nil
 }
