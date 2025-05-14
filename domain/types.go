@@ -27,13 +27,14 @@ type DocumentoTributario struct {
 
 // Item representa un ítem de un documento tributario
 type Item struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Descripcion string             `json:"descripcion" bson:"descripcion"`
-	Cantidad    float64            `json:"cantidad" bson:"cantidad"`
-	PrecioUnit  float64            `json:"precio_unit" bson:"precio_unit"`
-	MontoNeto   float64            `json:"monto_neto" bson:"monto_neto"`
-	MontoIVA    float64            `json:"monto_iva" bson:"monto_iva"`
-	MontoTotal  float64            `json:"monto_total" bson:"monto_total"`
+	ID                   primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Descripcion          string             `json:"descripcion" bson:"descripcion"`
+	Cantidad             float64            `json:"cantidad" bson:"cantidad"`
+	PrecioUnit           float64            `json:"precio_unit" bson:"precio_unit"`
+	MontoNeto            float64            `json:"monto_neto" bson:"monto_neto"`
+	MontoIVA             float64            `json:"monto_iva" bson:"monto_iva"`
+	MontoTotal           float64            `json:"monto_total" bson:"monto_total"`
+	ImpuestosAdicionales interface{}        `json:"impuestos_adicionales,omitempty" bson:"impuestos_adicionales,omitempty"`
 }
 
 // EstadoDocumento representa el estado de un documento

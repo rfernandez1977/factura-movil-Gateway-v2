@@ -98,8 +98,16 @@ func (c *DocumentController) ActualizarDocumento(ctx *gin.Context) {
 		return
 	}
 
+	// Obtener el folio del parámetro de la URL
+	folioStr := ctx.Param("folio")
+	folio, err := strconv.ParseInt(folioStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "folio inválido"})
+		return
+	}
+
 	// Obtener documento actual
-	doc, err := c.docService.ObtenerDocumento(ctx.Request.Context(), "FACTURA", req.Folio)
+	doc, err := c.docService.ObtenerDocumento(ctx.Request.Context(), "FACTURA", folio)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

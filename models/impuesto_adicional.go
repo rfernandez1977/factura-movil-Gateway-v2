@@ -1,10 +1,11 @@
 package models
 
-// ImpuestoAdicional representa un impuesto adicional
+// ImpuestoAdicional representa un impuesto adicional aplicado a un ítem
 type ImpuestoAdicional struct {
-	Tipo        string  `json:"tipo" bson:"tipo"`
-	Codigo      string  `json:"codigo" bson:"codigo"`
-	Tasa        float64 `json:"tasa" bson:"tasa"`
-	Monto       float64 `json:"monto" bson:"monto"`
-	Descripcion string  `json:"descripcion,omitempty" bson:"descripcion,omitempty"`
+	Codigo        string  `json:"codigo" bson:"codigo"`
+	Nombre        string  `json:"nombre" bson:"nombre"`
+	Porcentaje    float64 `json:"porcentaje" bson:"porcentaje"`
+	MontoImpuesto float64 `json:"monto_impuesto" bson:"monto_impuesto"`
+	BaseImponible float64 `json:"base_imponible" bson:"base_imponible"`
+	Descripcion   string  `json:"descripcion,omitempty" bson:"descripcion,omitempty"`
 }
