@@ -33,7 +33,7 @@ func NewStorageUtils(baseDir string) *StorageUtils {
 // SaveDocument guarda un documento en el almacenamiento
 func (s *StorageUtils) SaveDocument(doc *models.DocumentoTributario) error {
 	// Crear directorio para el emisor
-	emisorDir := filepath.Join(s.baseDir, doc.RutEmisor)
+	emisorDir := filepath.Join(s.baseDir, doc.RUTEmisor)
 	if err := os.MkdirAll(emisorDir, 0755); err != nil {
 		return fmt.Errorf("error al crear directorio del emisor: %v", err)
 	}
@@ -51,7 +51,7 @@ func (s *StorageUtils) SaveDocument(doc *models.DocumentoTributario) error {
 	}
 
 	// Generar nombre del archivo
-	filename := fmt.Sprintf("%s-%d-%s", doc.Tipo, doc.Folio, doc.FechaEmision.Format("20060102"))
+	filename := fmt.Sprintf("%s-%d-%s", doc.TipoDTE, doc.Folio, doc.FechaEmision.Format("20060102"))
 
 	// Guardar XML
 	xmlData, err := s.sii.GenerateSIIXML(doc)

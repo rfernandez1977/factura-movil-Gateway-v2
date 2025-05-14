@@ -26,7 +26,7 @@ func (u *SIIUtils) GenerateSIIXML(doc *models.DocumentoTributario) ([]byte, erro
 	siiDoc := models.DTEXMLModel{
 		Version: "1.0",
 		Documento: models.DocumentoXMLModel{
-			ID: fmt.Sprintf("DTE_%s_%d", doc.RutEmisor, doc.Folio),
+			ID: fmt.Sprintf("DTE_%s_%d", doc.RUTEmisor, doc.Folio),
 			Encabezado: models.EncabezadoXMLModel{
 				IdDoc: models.IDDocumentoXMLModel{
 					TipoDTE:      doc.TipoDTE,
@@ -34,16 +34,16 @@ func (u *SIIUtils) GenerateSIIXML(doc *models.DocumentoTributario) ([]byte, erro
 					FechaEmision: doc.FechaEmision.Format("2006-01-02"),
 				},
 				Emisor: models.EmisorXMLModel{
-					RUT:         doc.RutEmisor,
-					RazonSocial: doc.RutEmisor, // TODO: Obtener razón social del emisor
+					RUT:         doc.RUTEmisor,
+					RazonSocial: doc.RUTEmisor, // TODO: Obtener razón social del emisor
 					Giro:        "",            // TODO: Obtener giro del emisor
 					Direccion:   "",            // TODO: Obtener dirección del emisor
 					Comuna:      "",            // TODO: Obtener comuna del emisor
 					Ciudad:      "",            // TODO: Obtener ciudad del emisor
 				},
 				Receptor: models.ReceptorXMLModel{
-					RUT:         doc.RutReceptor,
-					RazonSocial: doc.RutReceptor, // TODO: Obtener razón social del receptor
+					RUT:         doc.RUTReceptor,
+					RazonSocial: doc.RUTReceptor, // TODO: Obtener razón social del receptor
 					Giro:        "",              // TODO: Obtener giro del receptor
 					Direccion:   "",              // TODO: Obtener dirección del receptor
 					Comuna:      "",              // TODO: Obtener comuna del receptor
@@ -56,21 +56,21 @@ func (u *SIIUtils) GenerateSIIXML(doc *models.DocumentoTributario) ([]byte, erro
 					MntTotal: int64(doc.MontoTotal),
 				},
 			},
-			Detalle: make([]models.DetalleDTEXML, len(doc.Items)),
+			Detalle: make([]models.DetalleDTEXML, len(doc.Detalles)),
 		},
 	}
 
-	// Agregar items
-	for i, item := range doc.Items {
-		cantidad := float64(item.Cantidad)
-		precio := float64(item.PrecioUnitario)
+	// Agregar detalles en lugar de items
+	for i, detalle := range doc.Detalles {
+		cantidad := float64(detalle.Cantidad)
+		precio := float64(detalle.PrecioUnitario)
 
 		siiDoc.Documento.Detalle[i] = models.DetalleDTEXML{
 			NroLinDet: i + 1,
-			Nombre:    item.Descripcion,
+			Nombre:    detalle.Descripcion,
 			Cantidad:  &cantidad,
 			Precio:    &precio,
-			MontoItem: int64(item.MontoItem),
+			MontoItem: int64(detalle.MontoItem),
 		}
 	}
 
@@ -90,7 +90,7 @@ func (u *SIIUtils) GenerateDocumentHash(doc *models.DocumentoTributario) string 
 		doc.TipoDTE,
 		doc.Folio,
 		doc.FechaEmision.Format("2006-01-02"),
-		doc.RutEmisor,
+		doc.RUTEmisor,
 		doc.MontoTotal)
 
 	// Calcular el hash SHA-1

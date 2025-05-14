@@ -29,7 +29,7 @@ func (v *ReferenceValidator) Validate() error {
 		return fmt.Errorf("tipo de documento es requerido")
 	}
 
-	if v.Reference.Folio == "" {
+	if v.Reference.Folio <= 0 {
 		return fmt.Errorf("folio es requerido")
 	}
 

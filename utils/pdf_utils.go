@@ -9,8 +9,8 @@ import (
 	"image"
 	"io"
 
-	"github.com/jung-kurt/gofpdf"
 	"github.com/cursor/FMgo/models"
+	"github.com/jung-kurt/gofpdf"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -50,7 +50,7 @@ func (p *PDFUtils) GeneratePDF(doc *models.DocumentoTributario) ([]byte, error) 
 	pdf.SetFont("Arial", "", 10)
 	pdf.SetTextColor(60, 60, 60)
 	pdf.SetXY(20, 30)
-	pdf.Cell(0, 6, "RUT: "+doc.RutEmisor)
+	pdf.Cell(0, 6, "RUT: "+doc.RUTEmisor)
 	pdf.Ln(5)
 	pdf.Cell(0, 6, "Dirección: [Dirección de la empresa]")
 	pdf.Ln(5)
@@ -60,7 +60,7 @@ func (p *PDFUtils) GeneratePDF(doc *models.DocumentoTributario) ([]byte, error) 
 	pdf.SetFont("Arial", "B", 16)
 	pdf.SetTextColor(0, 102, 204)
 	pdf.SetXY(140, 15)
-	pdf.Cell(60, 10, string(doc.Tipo)+" N° "+fmt.Sprint(doc.Folio))
+	pdf.Cell(60, 10, doc.TipoDTE+" N° "+fmt.Sprint(doc.Folio))
 	pdf.SetFont("Arial", "", 11)
 	pdf.SetTextColor(60, 60, 60)
 	pdf.SetXY(140, 25)
@@ -74,9 +74,9 @@ func (p *PDFUtils) GeneratePDF(doc *models.DocumentoTributario) ([]byte, error) 
 	pdf.Ln(7)
 	pdf.SetFont("Arial", "", 10)
 	pdf.SetTextColor(60, 60, 60)
-	pdf.Cell(0, 6, "RUT: "+doc.RutReceptor)
+	pdf.Cell(0, 6, "RUT: "+doc.RUTReceptor)
 	pdf.Ln(5)
-	pdf.Cell(0, 6, "Razón Social: "+doc.RutReceptor)
+	pdf.Cell(0, 6, "Razón Social: "+doc.RUTReceptor)
 
 	// TABLA DE ÍTEMS
 	pdf.SetXY(20, 70)
@@ -89,12 +89,12 @@ func (p *PDFUtils) GeneratePDF(doc *models.DocumentoTributario) ([]byte, error) 
 	pdf.CellFormat(30, 8, "Precio", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(30, 8, "Total", "1", 1, "C", true, 0, "")
 	pdf.SetFont("Arial", "", 10)
-	for _, item := range doc.Items {
-		pdf.CellFormat(20, 8, item.Codigo, "1", 0, "C", false, 0, "")
-		pdf.CellFormat(60, 8, item.Descripcion, "1", 0, "L", false, 0, "")
-		pdf.CellFormat(20, 8, fmt.Sprintf("%.2f", item.Cantidad), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(30, 8, fmt.Sprintf("$%.2f", item.PrecioUnitario), "1", 0, "R", false, 0, "")
-		pdf.CellFormat(30, 8, fmt.Sprintf("$%.2f", item.MontoItem), "1", 1, "R", false, 0, "")
+	for _, detalle := range doc.Detalles {
+		pdf.CellFormat(20, 8, "CÓDIGO", "1", 0, "C", false, 0, "")
+		pdf.CellFormat(60, 8, detalle.Descripcion, "1", 0, "L", false, 0, "")
+		pdf.CellFormat(20, 8, fmt.Sprintf("%d", detalle.Cantidad), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(30, 8, fmt.Sprintf("$%.2f", detalle.PrecioUnitario), "1", 0, "R", false, 0, "")
+		pdf.CellFormat(30, 8, fmt.Sprintf("$%.2f", detalle.MontoItem), "1", 1, "R", false, 0, "")
 	}
 
 	// TOTALES

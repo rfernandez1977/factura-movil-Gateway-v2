@@ -45,8 +45,8 @@ func DomainDocumentoToModelDocumento(doc domain.DocumentoTributario) models.Docu
 		MontoIVA:     doc.MontoIVA,
 		Estado:       models.EstadoDTE(doc.Estado),
 		Timestamps: models.Timestamps{
-			Creado:     doc.FechaCreacion,
-			Modificado: doc.FechaActualizacion,
+			Creado:     doc.FechaCreacion.Format(time.RFC3339),
+			Modificado: doc.FechaActualizacion.Format(time.RFC3339),
 		},
 	}
 }
@@ -71,7 +71,7 @@ func CoreDTEToModelDTE(d *dte.DTE) models.DocumentoTributario {
 		Estado:       models.EstadoDTEAceptado,
 		XML:          d.XML,
 		Timestamps: models.Timestamps{
-			Creado:     d.FechaCreacion,
+			Creado:     d.FechaCreacion.Format(time.RFC3339),
 			Modificado: time.Now().Format(time.RFC3339),
 		},
 	}
@@ -84,7 +84,7 @@ func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 	emisor := dte.Emisor{
 		RUT:         doc.RUTEmisor,
 		RazonSocial: doc.Emisor.RazonSocial,
-		Giro:        doc.Emisor.Giro,
+		Giro:        doc.Emisor.GiroComercial,
 		Direccion:   doc.Emisor.Direccion,
 		Comuna:      doc.Emisor.Comuna,
 		Ciudad:      doc.Emisor.Ciudad,
@@ -93,7 +93,7 @@ func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 	receptor := dte.Receptor{
 		RUT:         doc.RUTReceptor,
 		RazonSocial: doc.Receptor.RazonSocial,
-		Giro:        doc.Receptor.Giro,
+		Giro:        doc.Receptor.GiroComercial,
 		Direccion:   doc.Receptor.Direccion,
 		Comuna:      doc.Receptor.Comuna,
 		Ciudad:      doc.Receptor.Ciudad,
@@ -132,10 +132,18 @@ func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 		}
 	}
 
+	// Convertir el campo Creado de string a time.Time
+	var fechaCreacion time.Time
+	if doc.Timestamps.Creado != "" {
+		fechaCreacion, _ = time.Parse(time.RFC3339, doc.Timestamps.Creado)
+	} else {
+		fechaCreacion = time.Now()
+	}
+
 	return &dte.DTE{
 		ID:            doc.ID,
 		Documento:     dte.Documento{Encabezado: encabezado, Detalles: detalles},
-		FechaCreacion: doc.Timestamps.Creado,
+		FechaCreacion: fechaCreacion,
 		Estado:        string(doc.Estado),
 		XML:           doc.XML,
 	}
@@ -153,10 +161,7 @@ func DomainItemToModelItem(item domain.Item, lineNumber int) models.Item {
 		Descripcion:    item.Descripcion,
 		Cantidad:       item.Cantidad,
 		PrecioUnitario: item.PrecioUnit,
-		Subtotal:       item.MontoNeto,
 		MontoItem:      item.MontoTotal,
-		PorcentajeIVA:  19.0, // Default for Chile
-		MontoIVA:       item.MontoIVA,
 	}
 }
 

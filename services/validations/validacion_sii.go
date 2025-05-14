@@ -46,10 +46,10 @@ func (v *SIIBasicValidator) ValidarDocumento(doc *models.DocumentoTributario) er
 
 // validarCamposObligatorios valida que todos los campos obligatorios estén presentes
 func (v *SIIBasicValidator) validarCamposObligatorios(doc *models.DocumentoTributario) error {
-	if doc.RutEmisor == "" {
+	if doc.RUTEmisor == "" {
 		return fmt.Errorf("RUT del emisor es obligatorio")
 	}
-	if doc.RutReceptor == "" {
+	if doc.RUTReceptor == "" {
 		return fmt.Errorf("RUT del receptor es obligatorio")
 	}
 	if doc.RazonSocialEmisor == "" {
@@ -92,7 +92,7 @@ func (v *SIIBasicValidator) validarReferencias(doc *models.DocumentoTributario) 
 
 	for _, ref := range doc.Referencias {
 		// El folio de la referencia debe ser mayor a 0
-		if ref.FolioReferencia <= 0 {
+		if ref.Folio <= 0 {
 			return fmt.Errorf("folio de la referencia debe ser mayor a 0")
 		}
 
@@ -102,7 +102,7 @@ func (v *SIIBasicValidator) validarReferencias(doc *models.DocumentoTributario) 
 		}
 
 		// La razón de la referencia debe estar presente
-		if ref.Razon == "" {
+		if ref.RazonReferencia == "" {
 			return fmt.Errorf("razón de la referencia es obligatoria")
 		}
 	}
