@@ -18,6 +18,32 @@ const (
 	TipoNotaCreditoExportacion TipoDTE = 112 // Nota de Crédito de Exportación Electrónica
 )
 
+// TipoDocumento representa los tipos de documento en el sistema
+type TipoDocumento string
+
+// Tipos de documento
+const (
+	DocumentoFactura                TipoDocumento = "FACTURA"
+	DocumentoFacturaExenta          TipoDocumento = "FACTURA_EXENTA"
+	DocumentoBoleta                 TipoDocumento = "BOLETA"
+	DocumentoBoletaExenta           TipoDocumento = "BOLETA_EXENTA"
+	DocumentoFacturaCompra          TipoDocumento = "FACTURA_COMPRA"
+	DocumentoGuiaDespacho           TipoDocumento = "GUIA_DESPACHO"
+	DocumentoNotaDebito             TipoDocumento = "NOTA_DEBITO"
+	DocumentoNotaCredito            TipoDocumento = "NOTA_CREDITO"
+	DocumentoFacturaExportacion     TipoDocumento = "FACTURA_EXPORTACION"
+	DocumentoNotaDebitoExportacion  TipoDocumento = "NOTA_DEBITO_EXPORTACION"
+	DocumentoNotaCreditoExportacion TipoDocumento = "NOTA_CREDITO_EXPORTACION"
+	DocumentoOrdenCompra            TipoDocumento = "ORDEN_COMPRA"
+	DocumentoLiquidacionFactura     TipoDocumento = "LIQUIDACION_FACTURA"
+	DocumentoCobranza               TipoDocumento = "COBRANZA"
+	DocumentoInformeComercial       TipoDocumento = "INFORME_COMERCIAL"
+	DocumentoRecibo                 TipoDocumento = "RECIBO"
+	DocumentoPresupuesto            TipoDocumento = "PRESUPUESTO"
+	DocumentoProforma               TipoDocumento = "PROFORMA"
+	DocumentoMemo                   TipoDocumento = "MEMO"
+)
+
 // EstadoSIIType representa el tipo de estado del SII
 type EstadoSIIType string
 
@@ -58,4 +84,73 @@ type Item struct {
 	ImpuestosAdicionales   []ImpuestoAdicionalItem `json:"impuestos_adicionales,omitempty" bson:"impuestos_adicionales,omitempty"`
 	MontoImpuestoAdicional float64                 `json:"monto_impuesto_adicional,omitempty" bson:"monto_impuesto_adicional,omitempty"`
 	Metadata               map[string]interface{}  `json:"metadata,omitempty" bson:"metadata,omitempty"`
+}
+
+// ImpuestoAdicionalItem representa un impuesto adicional aplicado a un ítem
+type ImpuestoAdicionalItem struct {
+	Tipo        string  `json:"tipo" bson:"tipo"`
+	Codigo      string  `json:"codigo" bson:"codigo"`
+	Tasa        float64 `json:"tasa" bson:"tasa"`
+	Monto       float64 `json:"monto" bson:"monto"`
+	Descripcion string  `json:"descripcion,omitempty" bson:"descripcion,omitempty"`
+}
+
+// Convertir TipoDTE a TipoDocumento
+func (t TipoDTE) ToTipoDocumento() TipoDocumento {
+	switch t {
+	case TipoFactura:
+		return DocumentoFactura
+	case TipoFacturaExenta:
+		return DocumentoFacturaExenta
+	case TipoBoleta:
+		return DocumentoBoleta
+	case TipoBoletaExenta:
+		return DocumentoBoletaExenta
+	case TipoFacturaCompra:
+		return DocumentoFacturaCompra
+	case TipoGuiaDespacho:
+		return DocumentoGuiaDespacho
+	case TipoNotaDebito:
+		return DocumentoNotaDebito
+	case TipoNotaCredito:
+		return DocumentoNotaCredito
+	case TipoFacturaExportacion:
+		return DocumentoFacturaExportacion
+	case TipoNotaDebitoExportacion:
+		return DocumentoNotaDebitoExportacion
+	case TipoNotaCreditoExportacion:
+		return DocumentoNotaCreditoExportacion
+	default:
+		return ""
+	}
+}
+
+// Convertir TipoDocumento a TipoDTE
+func (t TipoDocumento) ToTipoDTE() TipoDTE {
+	switch t {
+	case DocumentoFactura:
+		return TipoFactura
+	case DocumentoFacturaExenta:
+		return TipoFacturaExenta
+	case DocumentoBoleta:
+		return TipoBoleta
+	case DocumentoBoletaExenta:
+		return TipoBoletaExenta
+	case DocumentoFacturaCompra:
+		return TipoFacturaCompra
+	case DocumentoGuiaDespacho:
+		return TipoGuiaDespacho
+	case DocumentoNotaDebito:
+		return TipoNotaDebito
+	case DocumentoNotaCredito:
+		return TipoNotaCredito
+	case DocumentoFacturaExportacion:
+		return TipoFacturaExportacion
+	case DocumentoNotaDebitoExportacion:
+		return TipoNotaDebitoExportacion
+	case DocumentoNotaCreditoExportacion:
+		return TipoNotaCreditoExportacion
+	default:
+		return 0
+	}
 }
