@@ -48,3 +48,108 @@ type DocumentoTributario struct {
 	Receptor *Receptor           `json:"receptor,omitempty" bson:"receptor,omitempty"`
 	Detalles []DetalleTributario `json:"detalles,omitempty" bson:"detalles,omitempty"`
 }
+
+// GetField obtiene el valor de un campo
+func (d *DocumentoTributario) GetField(campo string) interface{} {
+	switch campo {
+	case "id":
+		return d.ID
+	case "tipoDTE":
+		return d.TipoDTE
+	case "folio":
+		return d.Folio
+	case "fecha_emision":
+		return d.FechaEmision
+	case "rut_emisor":
+		return d.RUTEmisor
+	case "rut_receptor":
+		return d.RUTReceptor
+	case "razon_social_emisor":
+		return d.RazonSocialEmisor
+	case "razon_social_receptor":
+		return d.RazonSocialReceptor
+	case "monto_total":
+		return d.MontoTotal
+	case "monto_neto":
+		return d.MontoNeto
+	case "monto_exento":
+		return d.MontoExento
+	case "monto_iva":
+		return d.MontoIVA
+	case "estado":
+		return d.Estado
+	}
+	return nil
+}
+
+// SetField establece el valor de un campo
+func (d *DocumentoTributario) SetField(campo string, valor interface{}) error {
+	switch campo {
+	case "id":
+		if id, ok := valor.(string); ok {
+			d.ID = id
+			return nil
+		}
+	case "tipoDTE":
+		if tipo, ok := valor.(string); ok {
+			d.TipoDTE = tipo
+			return nil
+		}
+	case "folio":
+		if folio, ok := valor.(int); ok {
+			d.Folio = folio
+			return nil
+		}
+	case "fecha_emision":
+		if fecha, ok := valor.(time.Time); ok {
+			d.FechaEmision = fecha
+			return nil
+		}
+	case "rut_emisor":
+		if rut, ok := valor.(string); ok {
+			d.RUTEmisor = rut
+			return nil
+		}
+	case "rut_receptor":
+		if rut, ok := valor.(string); ok {
+			d.RUTReceptor = rut
+			return nil
+		}
+	case "razon_social_emisor":
+		if razon, ok := valor.(string); ok {
+			d.RazonSocialEmisor = razon
+			return nil
+		}
+	case "razon_social_receptor":
+		if razon, ok := valor.(string); ok {
+			d.RazonSocialReceptor = razon
+			return nil
+		}
+	case "monto_total":
+		if monto, ok := valor.(float64); ok {
+			d.MontoTotal = monto
+			return nil
+		}
+	case "monto_neto":
+		if monto, ok := valor.(float64); ok {
+			d.MontoNeto = monto
+			return nil
+		}
+	case "monto_exento":
+		if monto, ok := valor.(float64); ok {
+			d.MontoExento = monto
+			return nil
+		}
+	case "monto_iva":
+		if monto, ok := valor.(float64); ok {
+			d.MontoIVA = monto
+			return nil
+		}
+	case "estado":
+		if estado, ok := valor.(string); ok {
+			d.Estado = EstadoDTE(estado)
+			return nil
+		}
+	}
+	return NewValidationFieldError(campo, "Tipo de dato inválido para el campo", "INVALID_TYPE", valor)
+}
