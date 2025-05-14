@@ -31,6 +31,7 @@ type Factura struct {
 	CAF                 *domain.CAF     `json:"caf,omitempty" bson:"caf,omitempty"`
 	TimbreElectronico   string          `json:"timbre_electronico,omitempty" bson:"timbre_electronico,omitempty"`
 	FirmaElectronica    string          `json:"firma_electronica,omitempty" bson:"firma_electronica,omitempty"`
+	Referencias         []Referencia    `json:"referencias,omitempty" bson:"referencias,omitempty"`
 }
 
 // FacturaRequest representa la solicitud para crear una factura

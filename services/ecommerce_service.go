@@ -103,7 +103,7 @@ func (s *EcommerceService) RegisterStore(ctx context.Context, config *EcommerceC
 	}
 
 	// Establecer valores por defecto
-	config.ID = GenerateID()
+	config.ID = models.GenerateID()
 	config.CreatedAt = time.Now()
 	config.UpdatedAt = time.Now()
 
@@ -1387,8 +1387,29 @@ func (s *EcommerceService) UpdateDocument(ctx context.Context, id primitive.Obje
 
 	// Actualizar en caché si existe
 	if doc, err := s.cache.GetDocument(id.Hex()); err == nil {
+		// Manejar actualizaciones específicamente para cada campo
 		for k, v := range updates {
-			doc.Metadata[k] = v
+			// Si el campo a actualizar es metadata o sus subcampos
+			if k == "metadata" {
+				if metadata, ok := v.(models.Metadata); ok {
+					doc.Metadata = metadata
+				}
+			} else if k == "metadata.version" {
+				if version, ok := v.(string); ok {
+					doc.Metadata.Version = version
+				}
+			} else if k == "metadata.tags" {
+				if tags, ok := v.([]string); ok {
+					doc.Metadata.Tags = tags
+				}
+			} else if k == "metadata.atributos" {
+				if atributos, ok := v.(map[string]string); ok {
+					doc.Metadata.Atributos = atributos
+				}
+			} else {
+				// Para otros campos, podríamos usar reflection o implementar
+				// un método específico para actualizar cada campo conocido
+			}
 		}
 		s.cache.SetDocument(id.Hex(), doc)
 	}

@@ -240,7 +240,7 @@ func (s *TributarioSII) GenerateXML(doc interface{}) (string, error) {
 				</Totales>
 			</Encabezado>
 		</DTE>`
-		return fmt.Sprintf(xml, montoNeto, montoExento, montoIVA, impuestosParaXML[0].Codigo, impuestosParaXML[0].Porcentaje, impuestosParaXML[0].Monto, montoTotal), nil
+		return fmt.Sprintf(xml, montoNeto, montoExento, montoIVA, impuestosParaXML[0].TipoImpuesto, impuestosParaXML[0].Porcentaje, impuestosParaXML[0].Monto, montoTotal), nil
 	}
 
 	return fmt.Sprintf(xml, montoNeto, montoExento, montoIVA, montoTotal), nil
@@ -248,16 +248,22 @@ func (s *TributarioSII) GenerateXML(doc interface{}) (string, error) {
 
 // obtenerImpuestosParaXML extrae los impuestos adicionales para usar en el XML
 // Solo se incluye el primer impuesto encontrado, según requerimiento del SII
-func (s *TributarioSII) obtenerImpuestosParaXML(items []models.Item) []models.ImpuestoAdicionalItem {
+func (s *TributarioSII) obtenerImpuestosParaXML(items interface{}) []models.ImpuestoAdicionalItem {
 	var impuestosParaXML []models.ImpuestoAdicionalItem
 
-	// Buscar el primer impuesto adicional encontrado en cualquier ítem
-	for _, item := range items {
-		if len(item.ImpuestosAdicionales) > 0 {
-			// Solo agregamos el primer impuesto para el XML
-			impuestosParaXML = append(impuestosParaXML, item.ImpuestosAdicionales[0])
-			return impuestosParaXML // Retornamos inmediatamente después de encontrar el primero
+	switch typedItems := items.(type) {
+	case []models.Item:
+		// Caso para Item estándar
+		for _, item := range typedItems {
+			if len(item.ImpuestosAdicionales) > 0 {
+				// Solo agregamos el primer impuesto para el XML
+				impuestosParaXML = append(impuestosParaXML, item.ImpuestosAdicionales[0])
+				return impuestosParaXML // Retornamos inmediatamente después de encontrar el primero
+			}
 		}
+	default:
+		// Para otros tipos (como domain.Item o DetalleBoleta) que no tienen impuestos adicionales,
+		// simplemente devolvemos un array vacío
 	}
 
 	return impuestosParaXML

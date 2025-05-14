@@ -285,3 +285,31 @@ func (c *TributarioCalculation) CalcularImpuestosFromDomain(items []domain.Item)
 
 	return montoNeto, montoExento, montoIVA, montoTotal, nil
 }
+
+// CalcularMontosBoleta calcula los montos de una boleta
+func (c *TributarioCalculation) CalcularMontosBoleta(boleta *models.Boleta) error {
+	if boleta == nil {
+		return fmt.Errorf("boleta es nil")
+	}
+
+	// Convertir a un slice de interface{} para reutilizar código
+	var items []interface{}
+	for _, item := range boleta.Items {
+		items = append(items, item)
+	}
+
+	// Calcular montos utilizando la función genérica
+	montoNeto, montoExento, err := c.calcularMontosItems(items)
+	if err != nil {
+		return err
+	}
+
+	// Asignar valores calculados
+	boleta.MontoNeto = montoNeto
+	boleta.MontoExento = montoExento
+	boleta.MontoIVA = montoNeto * c.config.PorcentajeIVA
+	boleta.TasaIVA = c.config.PorcentajeIVA
+	boleta.MontoTotal = montoNeto + boleta.MontoIVA + montoExento
+
+	return nil
+}

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/jung-kurt/gofpdf"
 	"github.com/cursor/FMgo/models"
+	"github.com/jung-kurt/gofpdf"
 )
 
 // TributarioPDF maneja la generación de PDFs para documentos tributarios

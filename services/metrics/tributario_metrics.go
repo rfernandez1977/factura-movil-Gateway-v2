@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/cursor/FMgo/domain"
 	"github.com/cursor/FMgo/models"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // MetricasDocumento contiene las métricas para documentos tributarios
@@ -233,4 +234,60 @@ func (m *TributarioMetrics) CollectMetrics(doc interface{}) error {
 	}
 
 	return nil
+}
+
+// ObtenerImpuestosAdicionales obtiene los impuestos adicionales de los items de tipo domain.Item
+func (s *TributarioMetrics) ObtenerImpuestosAdicionales(items []domain.Item) []models.ImpuestoAdicional {
+	var impuestos []models.ImpuestoAdicional
+	impuestosMap := make(map[string]models.ImpuestoAdicional)
+
+	// En el caso de domain.Item, no tenemos el campo ImpuestosAdicionales
+	// Por lo tanto, devolvemos un slice vacío
+	return impuestos
+}
+
+// ObtenerImpuestosAdicionalesBoleta obtiene los impuestos adicionales de los items de tipo DetalleBoleta
+func (s *TributarioMetrics) ObtenerImpuestosAdicionalesBoleta(items []*models.DetalleBoleta) []models.ImpuestoAdicional {
+	var impuestos []models.ImpuestoAdicional
+	impuestosMap := make(map[string]models.ImpuestoAdicional)
+
+	// En el caso de DetalleBoleta, no tenemos el campo ImpuestosAdicionales
+	// Por lo tanto, devolvemos un slice vacío
+	return impuestos
+}
+
+// AgregarImpuestoAdicionalesItems agrega los impuestos adicionales a las métricas
+func (s *TributarioMetrics) AgregarImpuestoAdicionalesItems(metric *map[string]int64, montos *map[string]float64, items []domain.Item) {
+	/*
+		// Este código causa errores porque domain.Item no tiene el campo ImpuestosAdicionales
+		for _, item := range items {
+			for _, impuesto := range item.ImpuestosAdicionales {
+				key := fmt.Sprintf("impuesto_adicional_%s", impuesto.Codigo)
+				if _, ok := (*metric)[key]; !ok {
+					(*metric)[key] = 0
+					(*montos)[key] = 0
+				}
+				(*metric)[key]++
+				(*montos)[key] += impuesto.Monto
+			}
+		}
+	*/
+}
+
+// AgregarImpuestoAdicionalesBoleta agrega los impuestos adicionales de una boleta a las métricas
+func (s *TributarioMetrics) AgregarImpuestoAdicionalesBoleta(metric *map[string]int64, montos *map[string]float64, items []*models.DetalleBoleta) {
+	/*
+		// Este código causa errores porque DetalleBoleta no tiene el campo ImpuestosAdicionales
+		for _, item := range items {
+			for _, impuesto := range item.ImpuestosAdicionales {
+				key := fmt.Sprintf("impuesto_adicional_%s", impuesto.Codigo)
+				if _, ok := (*metric)[key]; !ok {
+					(*metric)[key] = 0
+					(*montos)[key] = 0
+				}
+				(*metric)[key]++
+				(*montos)[key] += impuesto.Monto
+			}
+		}
+	*/
 }

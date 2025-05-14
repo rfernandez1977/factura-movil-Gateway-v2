@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/cursor/FMgo/domain"
 	"github.com/cursor/FMgo/models"
 )
 
@@ -464,4 +465,78 @@ func (v *TributarioValidation) validarExistenciaDocumento(folio int, tipo string
 func (v *TributarioValidation) verificarDocumentoNoAnulado(folio int, tipo string) error {
 	// TODO: Implementar verificación real contra base de datos
 	return nil
+}
+
+// ValidarReferencias valida las referencias de una factura
+func (s *TributarioValidation) ValidarReferencias(factura *models.Factura) []models.ValidationFieldError {
+	var errors []models.ValidationFieldError
+
+	if factura.Referencias == nil {
+		return errors
+	}
+
+	for i, ref := range factura.Referencias {
+		// Validar que el tipo de referencia sea válido
+		if ref.TipoReferencia == "" {
+			errors = append(errors, models.ValidationFieldError{
+				Field:   fmt.Sprintf("referencias[%d].tipo_referencia", i),
+				Message: "Tipo de referencia es requerido",
+			})
+		}
+
+		// Validar referencias a guías de despacho
+		if ref.TipoReferencia == models.TipoGuiaDespacho && ref.TipoDocumento != fmt.Sprintf("%d", models.TipoGuiaDespacho) {
+			errors = append(errors, models.ValidationFieldError{
+				Field:   fmt.Sprintf("referencias[%d].tipo_documento", i),
+				Message: "La referencia debe ser a una guía de despacho",
+			})
+		}
+
+		// Validar referencias a notas de crédito/débito
+		if (ref.TipoReferencia == models.TipoNotaCredito || ref.TipoReferencia == models.TipoNotaDebito) &&
+			(ref.TipoDocumento != fmt.Sprintf("%d", models.TipoNotaCredito) && ref.TipoDocumento != fmt.Sprintf("%d", models.TipoNotaDebito)) {
+			errors = append(errors, models.ValidationFieldError{
+				Field:   fmt.Sprintf("referencias[%d].tipo_documento", i),
+				Message: "La referencia debe ser a una nota de crédito o débito",
+			})
+		}
+	}
+
+	return errors
+}
+
+// ValidarImpuestosAdicionalesItems valida los impuestos adicionales de los items de domain.Item
+func (s *TributarioValidation) ValidarImpuestosAdicionalesItems(items []domain.Item) []models.ValidationFieldError {
+	var errors []models.ValidationFieldError
+
+	for i, item := range items {
+		// No se validan impuestos adicionales en items del dominio
+		// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
+	}
+
+	return errors
+}
+
+// ValidarImpuestosAdicionalesBoleta valida los impuestos adicionales de los items de una boleta
+func (s *TributarioValidation) ValidarImpuestosAdicionalesBoleta(items []*models.DetalleBoleta) []models.ValidationFieldError {
+	var errors []models.ValidationFieldError
+
+	for i, item := range items {
+		// No se validan impuestos adicionales en los detalles de boleta
+		// ya que este tipo no tiene el campo ImpuestosAdicionales en la estructura original
+	}
+
+	return errors
+}
+
+// ValidarTipoReferencia valida un tipo de referencia
+func (s *TributarioValidation) ValidarTipoReferencia(tipoReferencia models.TipoReferencia) error {
+	switch tipoReferencia {
+	case models.TipoAnula, models.TipoCorrige, models.TipoPreciosCantidad,
+		models.TipoReferenciaInterna, models.TipoGuiaDespacho, models.TipoOtraReferencia,
+		models.TipoSetPruebas, models.TipoOrdenCompra, models.TipoNotaCredito, models.TipoNotaDebito:
+		return nil
+	default:
+		return fmt.Errorf("tipo de referencia no válido: %s", tipoReferencia)
+	}
 }

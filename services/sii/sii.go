@@ -114,7 +114,7 @@ func (c *SIIClient) VerificarComunicacion() error {
 		return fmt.Errorf("error al procesar estado del SII: %v", err)
 	}
 
-	if estado.Estado != models.EstadoSIIAceptado {
+	if models.EstadoSIIType(estado.Estado) != models.EstadoSIIAceptado {
 		return fmt.Errorf("error de comunicación con el SII: %s", estado.Glosa)
 	}
 

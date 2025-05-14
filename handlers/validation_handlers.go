@@ -1,27 +1,66 @@
 package handlers
 
 import (
-    "github.com/gin-gonic/gin"
-    "time"
+	"encoding/json"
+	"net/http"
+
+	"github.com/cursor/FMgo/api"
+	"github.com/cursor/FMgo/models"
+	"github.com/cursor/FMgo/services/validations"
 )
 
-type ValidationHandlers struct {
-    client *api.FacturaMovilClient
+// ValidationHandler maneja las rutas de validación
+type ValidationHandler struct {
+	validationService *validations.ValidationService
 }
 
-type CrossValidation struct {
-    RUT            string    `json:"rut"`
-    BusinessName   string    `json:"businessName"`
-    TaxStatus      string    `json:"taxStatus"`
-    LastValidation time.Time `json:"lastValidation"`
-    ValidationSource string  `json:"validationSource"` // SII, DICOM, etc.
+// NewValidationHandler crea un nuevo ValidationHandler
+func NewValidationHandler(validationService *validations.ValidationService) *ValidationHandler {
+	return &ValidationHandler{
+		validationService: validationService,
+	}
 }
 
-func (h *ValidationHandlers) CrossValidateHandler(c *gin.Context) {
-    var validation CrossValidation
+// RegisterRoutes registra las rutas del manejador
+func (h *ValidationHandler) RegisterRoutes(router *api.Router) {
+	router.Post("/api/validate/factura", h.ValidateFactura)
+	router.Post("/api/validate/boleta", h.ValidateBoleta)
+}
 
-    // Validación cruzada con múltiples fuentes
-    // Verificación de estado tributario
-    // Comprobación de morosidad
-    // Validación de actividad económica
+// ValidateFactura valida una factura
+func (h *ValidationHandler) ValidateFactura(w http.ResponseWriter, r *http.Request) {
+	var factura models.Factura
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&factura); err != nil {
+		api.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
+
+	errors := h.validationService.ValidateFactura(&factura)
+	if len(errors) > 0 {
+		api.RespondWithJSON(w, http.StatusBadRequest, errors)
+		return
+	}
+
+	api.RespondWithJSON(w, http.StatusOK, map[string]bool{"valid": true})
+}
+
+// ValidateBoleta valida una boleta
+func (h *ValidationHandler) ValidateBoleta(w http.ResponseWriter, r *http.Request) {
+	var boleta models.Boleta
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&boleta); err != nil {
+		api.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
+
+	errors := h.validationService.ValidateBoleta(&boleta)
+	if len(errors) > 0 {
+		api.RespondWithJSON(w, http.StatusBadRequest, errors)
+		return
+	}
+
+	api.RespondWithJSON(w, http.StatusOK, map[string]bool{"valid": true})
 }

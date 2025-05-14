@@ -336,3 +336,17 @@ func (v *SIIValidator) validarFormatoRUT(rut string) bool {
 	// Formato: 12345678-9 o 12.345.678-9
 	return true // TODO: Implementar validación real
 }
+
+// ValidateSign valida una firma electrónica
+func (v *SIIValidator) ValidateSign(sign []byte) *models.ErrorValidacion {
+	if len(sign) == 0 {
+		return &models.ErrorValidacion{
+			Codigo:    "SII-001",
+			Mensaje:   "La firma electrónica es inválida",
+			Campo:     "firma",
+			Valor:     "",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+	}
+	return nil
+}

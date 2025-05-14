@@ -1,22 +1,53 @@
 package handlers
 
-type OperationLogHandlers struct {
-    client *api.FacturaMovilClient
+import (
+	"net/http"
+
+	"github.com/cursor/FMgo/api"
+	"github.com/cursor/FMgo/services"
+)
+
+// OperationLogHandler maneja las rutas de logs de operaciones
+type OperationLogHandler struct {
+	logService *services.LogService
 }
 
-type OperationLog struct {
-    TipoOperacion   string    `json:"tipoOperacion"`
-    Usuario         string    `json:"usuario"`
-    FechaHora       time.Time `json:"fechaHora"`
-    Detalles        map[string]interface{} `json:"detalles"`
-    ResultadoSII    string    `json:"resultadoSII"`
-    EstadoInterno   string    `json:"estadoInterno"`
+// NewOperationLogHandler crea un nuevo OperationLogHandler
+func NewOperationLogHandler(logService *services.LogService) *OperationLogHandler {
+	return &OperationLogHandler{
+		logService: logService,
+	}
 }
 
-func (h *OperationLogHandlers) RegisterOperationHandler(c *gin.Context) {
-    var log OperationLog
+// RegisterRoutes registra las rutas del manejador
+func (h *OperationLogHandler) RegisterRoutes(router *api.Router) {
+	router.Get("/api/logs", h.GetLogs)
+	router.Get("/api/logs/:id", h.GetLog)
+}
 
-    // Registro detallado de operaciones
-    // Seguimiento de estados
-    // Auditoría de cambios
+// GetLogs devuelve todos los logs de operaciones
+func (h *OperationLogHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
+	logs, err := h.logService.GetLogs()
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	api.RespondWithJSON(w, http.StatusOK, logs)
+}
+
+// GetLog devuelve un log específico
+func (h *OperationLogHandler) GetLog(w http.ResponseWriter, r *http.Request) {
+	// TODO: Extraer ID de la URL con algún router que soporte parámetros
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		api.RespondWithError(w, http.StatusBadRequest, "ID de log no proporcionado")
+		return
+	}
+
+	log, err := h.logService.GetLog(id)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	api.RespondWithJSON(w, http.StatusOK, log)
 }

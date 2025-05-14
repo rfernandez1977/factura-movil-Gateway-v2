@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/cursor/FMgo/config"
 	"github.com/cursor/FMgo/models"
@@ -25,7 +25,7 @@ type Service struct {
 // NewService crea una nueva instancia del servicio de firma digital
 func NewService(config *config.Config) (*Service, error) {
 	// Cargar clave privada
-	keyData, err := ioutil.ReadFile(config.SII.KeyPath)
+	keyData, err := os.ReadFile(config.SII.KeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("error al leer clave privada: %w", err)
 	}
@@ -41,7 +41,7 @@ func NewService(config *config.Config) (*Service, error) {
 	}
 
 	// Cargar certificado
-	certData, err := ioutil.ReadFile(config.SII.CertPath)
+	certData, err := os.ReadFile(config.SII.CertPath)
 	if err != nil {
 		return nil, fmt.Errorf("error al leer certificado: %w", err)
 	}

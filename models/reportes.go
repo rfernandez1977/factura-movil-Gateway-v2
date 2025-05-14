@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -110,4 +111,58 @@ type SyncRecord struct {
 	Type      string `json:"type"`
 	Status    string `json:"status"`
 	Timestamp string `json:"timestamp"`
+}
+
+// ReporteGenerator es el generador de reportes
+type ReporteGenerator struct {
+	client     ClienteReporte
+	documentos []DocumentoTributario
+	pdfs       []string
+	errores    []*ErrorValidacion
+	estados    []*EstadoSII
+	outputDir  string
+}
+
+// ClienteReporte define la interfaz para el cliente de reportes
+type ClienteReporte interface {
+	ConsultarEstadoSII(id string) (*EstadoSII, error)
+	DescargarPDF(id string, rutaDestino string) error
+}
+
+// ReporteConfig es la configuración para generar reportes
+type ReporteConfig struct {
+	FechaInicio   time.Time
+	FechaFin      time.Time
+	TipoDocumento string
+	RutEmisor     string
+	RutReceptor   string
+	OutputDir     string
+}
+
+// ErrorReporte representa un error en la generación de reportes
+type ErrorReporte struct {
+	Codigo    string `json:"codigo"`
+	Mensaje   string `json:"mensaje"`
+	Campo     string `json:"campo,omitempty"`
+	Valor     string `json:"valor,omitempty"`
+	Timestamp string `json:"timestamp"`
+}
+
+// ObtenerPDFs obtiene los PDFs generados para los documentos en el rango de fechas
+func (s *ReporteGenerator) ObtenerPDFs(config *ReporteConfig) error {
+	// Para cada documento, obtener su PDF
+	for _, doc := range s.documentos {
+		if err := s.client.DescargarPDF(doc.ID, fmt.Sprintf("%s/%s.pdf", s.outputDir, doc.ID)); err != nil {
+			s.errores = append(s.errores, &ErrorValidacion{
+				Codigo:    "REPORTE-002",
+				Mensaje:   fmt.Sprintf("Error al descargar PDF: %v", err),
+				Campo:     "documento_id",
+				Valor:     doc.ID,
+				Timestamp: time.Now().Format(time.RFC3339),
+			})
+			continue
+		}
+		s.pdfs = append(s.pdfs, fmt.Sprintf("%s/%s.pdf", s.outputDir, doc.ID))
+	}
+	return nil
 }
