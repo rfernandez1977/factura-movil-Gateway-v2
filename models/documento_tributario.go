@@ -2,12 +2,22 @@ package models
 
 import "time"
 
+// DetalleTributario representa un detalle de documento tributario
+type DetalleTributario struct {
+	Descripcion    string  `json:"descripcion" bson:"descripcion"`
+	Cantidad       int     `json:"cantidad" bson:"cantidad"`
+	PrecioUnitario float64 `json:"precio_unitario" bson:"precio_unitario"`
+	MontoItem      float64 `json:"monto_item" bson:"monto_item"`
+	Exento         bool    `json:"exento" bson:"exento"`
+}
+
 // DocumentoTributario representa la estructura común para todos los documentos tributarios
 type DocumentoTributario struct {
 	ID                  string       `json:"id" bson:"_id,omitempty"`
 	Folio               int          `json:"folio" bson:"folio"`
 	FechaEmision        time.Time    `json:"fecha_emision" bson:"fecha_emision"`
 	TipoDocumento       TipoDTE      `json:"tipo_documento" bson:"tipo_documento"`
+	TipoDTE             string       `json:"tipo_dte" bson:"tipo_dte"` // Representa el DTE como string para interfaz con SII
 	RUTEmisor           string       `json:"rut_emisor" bson:"rut_emisor"`
 	RazonSocialEmisor   string       `json:"razon_social_emisor" bson:"razon_social_emisor"`
 	GiroEmisor          string       `json:"giro_emisor" bson:"giro_emisor"`
@@ -30,4 +40,9 @@ type DocumentoTributario struct {
 	XML                 string       `json:"xml,omitempty" bson:"xml,omitempty"`
 	CreatedAt           time.Time    `json:"created_at" bson:"created_at"`
 	UpdatedAt           time.Time    `json:"updated_at" bson:"updated_at"`
+
+	// Campos adicionales para la emisión de documentos
+	Emisor   *Emisor             `json:"emisor,omitempty" bson:"emisor,omitempty"`
+	Receptor *Receptor           `json:"receptor,omitempty" bson:"receptor,omitempty"`
+	Detalles []DetalleTributario `json:"detalles,omitempty" bson:"detalles,omitempty"`
 }
