@@ -37,8 +37,8 @@ func DomainDocumentoToModelDocumento(doc domain.DocumentoTributario) models.Docu
 		TipoDTE:      doc.TipoDocumento,
 		Folio:        int(doc.Folio),
 		FechaEmision: doc.FechaEmision,
-		RutEmisor:    doc.RutEmisor,
-		RutReceptor:  doc.RutReceptor,
+		RUTEmisor:    doc.RutEmisor,
+		RUTReceptor:  doc.RutReceptor,
 		MontoTotal:   doc.MontoTotal,
 		MontoNeto:    doc.MontoNeto,
 		MontoExento:  doc.MontoExento,
@@ -62,17 +62,17 @@ func CoreDTEToModelDTE(d *dte.DTE) models.DocumentoTributario {
 		TipoDTE:      doc.Encabezado.IDDocumento.TipoDTE,
 		Folio:        folio,
 		FechaEmision: doc.Encabezado.IDDocumento.FechaEmision,
-		RutEmisor:    doc.Encabezado.Emisor.RUT,
-		RutReceptor:  doc.Encabezado.Receptor.RUT,
+		RUTEmisor:    doc.Encabezado.Emisor.RUT,
+		RUTReceptor:  doc.Encabezado.Receptor.RUT,
 		MontoTotal:   doc.Encabezado.Totales.MontoTotal,
 		MontoNeto:    doc.Encabezado.Totales.MontoNeto,
 		MontoExento:  doc.Encabezado.Totales.MontoExento,
 		MontoIVA:     doc.Encabezado.Totales.IVA,
 		Estado:       models.EstadoDTEAceptado,
-		XML:          []byte(d.XML),
+		XML:          d.XML,
 		Timestamps: models.Timestamps{
 			Creado:     d.FechaCreacion,
-			Modificado: time.Now(),
+			Modificado: time.Now().Format(time.RFC3339),
 		},
 	}
 }
@@ -82,7 +82,7 @@ func CoreDTEToModelDTE(d *dte.DTE) models.DocumentoTributario {
 // ModelDocumentoToCoreDTE converts models.DocumentoTributario to core/dte.DTE
 func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 	emisor := dte.Emisor{
-		RUT:         doc.RutEmisor,
+		RUT:         doc.RUTEmisor,
 		RazonSocial: doc.Emisor.RazonSocial,
 		Giro:        doc.Emisor.Giro,
 		Direccion:   doc.Emisor.Direccion,
@@ -91,7 +91,7 @@ func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 	}
 
 	receptor := dte.Receptor{
-		RUT:         doc.RutReceptor,
+		RUT:         doc.RUTReceptor,
 		RazonSocial: doc.Receptor.RazonSocial,
 		Giro:        doc.Receptor.Giro,
 		Direccion:   doc.Receptor.Direccion,
@@ -137,7 +137,7 @@ func ModelDocumentoToCoreDTE(doc models.DocumentoTributario) *dte.DTE {
 		Documento:     dte.Documento{Encabezado: encabezado, Detalles: detalles},
 		FechaCreacion: doc.Timestamps.Creado,
 		Estado:        string(doc.Estado),
-		XML:           string(doc.XML),
+		XML:           doc.XML,
 	}
 }
 

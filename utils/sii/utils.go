@@ -110,7 +110,7 @@ func GenerarXMLDTE(doc *models.DocumentoTributario, empresa *models.Empresa) ([]
 	dte := models.DTEXMLModel{
 		Version: "1.0",
 		Documento: models.DocumentoXMLModel{
-			ID: fmt.Sprintf("DTE_%s_%d", doc.RutEmisor, doc.Folio),
+			ID: fmt.Sprintf("DTE_%s_%d", doc.RUTEmisor, doc.Folio),
 			Encabezado: models.EncabezadoXMLModel{
 				IdDoc: models.IDDocumentoXMLModel{
 					TipoDTE:      doc.TipoDTE,
@@ -126,7 +126,7 @@ func GenerarXMLDTE(doc *models.DocumentoTributario, empresa *models.Empresa) ([]
 					Ciudad:      empresa.Ciudad,
 				},
 				Receptor: models.ReceptorXMLModel{
-					RUT:         doc.RutReceptor,
+					RUT:         doc.RUTReceptor,
 					RazonSocial: "Receptor", // Valor por defecto
 					Direccion:   "",
 					Comuna:      "",
@@ -147,7 +147,7 @@ func GenerarXMLDTE(doc *models.DocumentoTributario, empresa *models.Empresa) ([]
 	for i, item := range doc.Detalles {
 		descripcion := item.Descripcion
 		cantidad := float64(item.Cantidad)
-		precio := float64(item.PrecioUnitario)
+		precio := item.PrecioUnitario
 		montoItem := int64(item.MontoItem)
 
 		dte.Documento.Detalle[i] = models.DetalleDTEXML{
@@ -312,24 +312,37 @@ func ProcesarRespuestaSII(resp *models.RespuestaSII) (*models.EstadoSII, error) 
 		return nil, fmt.Errorf("respuesta nula")
 	}
 
+	// Validar respuesta primero
+	if err := ValidarRespuestaSII(resp); err != nil {
+		return nil, fmt.Errorf("error validando respuesta: %v", err)
+	}
+
+	// Crear estado con errorReporteSII en lugar de errorSII
 	estado := &models.EstadoSII{
+		Estado:      "ACEPTADO",
+		Glosa:       resp.Glosa,
 		Codigo:      0,
 		Descripcion: resp.Glosa,
 		Timestamp:   resp.FechaProceso,
+		TrackID:     resp.TrackID,
+		Errores:     []models.ErrorReporteSII{}, // Ahora usamos ErrorReporteSII
+	}
+
+	// Convertir los errores de ErrorSII a ErrorReporteSII
+	for _, e := range resp.Errores {
+		estado.Errores = append(estado.Errores, models.ErrorReporteSII{
+			Codigo:      e.Codigo,
+			Mensaje:     e.Descripcion, // Usamos Descripcion como Mensaje
+			Descripcion: e.Detalle,     // Usamos Detalle como Descripcion
+			Timestamp:   resp.FechaProceso,
+		})
 	}
 
 	// Determinar el estado basado en la respuesta
-	if resp.Estado == estadoOK {
-		estado.Estado = "ACEPTADO"
-	} else {
+	if resp.Estado != estadoOK {
 		estado.Estado = "RECHAZADO"
 		estado.Codigo = 1 // Código genérico de error
 	}
-
-	// Agregar información adicional
-	estado.Glosa = resp.Glosa
-	estado.TrackID = resp.TrackID
-	estado.Errores = resp.Errores
 
 	return estado, nil
 }
@@ -358,21 +371,30 @@ func ValidarRespuestaSII(resp *models.RespuestaSII) error {
 		return fmt.Errorf("respuesta nula")
 	}
 
-	if err := ValidarEstadoSII(resp); err != nil {
-		return fmt.Errorf("error en estado: %v", err)
+	if resp.Estado == "" {
+		return fmt.Errorf("estado no encontrado en la respuesta")
 	}
 
-	if err := ValidarFechasSII(resp); err != nil {
-		return fmt.Errorf("error en fechas: %v", err)
+	if resp.Estado != estadoOK && resp.Estado != estadoERROR {
+		return fmt.Errorf("estado inválido: %s", resp.Estado)
+	}
+
+	if resp.FechaProceso.IsZero() {
+		return fmt.Errorf("fecha no encontrada en la respuesta")
 	}
 
 	// Verificar si hay errores en la respuesta SII
-	if resp.Estado == estadoERROR || len(resp.Errores) > 0 {
-		return fmt.Errorf("la respuesta contiene errores: %s", resp.Glosa)
+	if resp.Estado == estadoERROR && len(resp.Errores) == 0 {
+		return fmt.Errorf("estado ERROR sin errores especificados")
 	}
 
-	if err := ValidarDetallesSII(resp); err != nil {
-		return fmt.Errorf("error en detalles: %v", err)
+	for i, err := range resp.Errores {
+		if err.Codigo == "" {
+			return fmt.Errorf("error %d: código no encontrado", i+1)
+		}
+		if err.Descripcion == "" {
+			return fmt.Errorf("error %d: descripción no encontrada", i+1)
+		}
 	}
 
 	return nil

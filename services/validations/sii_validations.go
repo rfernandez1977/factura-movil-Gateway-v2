@@ -348,7 +348,7 @@ func (v *SIIValidator) validarTotales(totales TotalesXMLModel) error {
 	if totales.MntNeto != nil && totales.IVA != nil {
 		ivaCalculado := float64(*totales.MntNeto) * (v.config.TasaIVA / 100.0)
 		if float64(*totales.IVA) != ivaCalculado {
-			v.agregarError(models.ErrorValidacionNegocio, "IVA", "Monto de IVA no corresponde a la tasa vigente")
+			v.agregarError(ErrorValidacionNegocio, "IVA", "Monto de IVA no corresponde a la tasa vigente")
 		}
 	}
 

@@ -56,8 +56,8 @@ func (r *SupabaseDocumentoRepository) Create(ctx context.Context, doc *models.Do
 	// Convertir a formato adecuado para Supabase
 	documentoSupabase := map[string]interface{}{
 		"tipo":         doc.TipoDTE,
-		"rut_emisor":   doc.RutEmisor,
-		"rut_receptor": doc.RutReceptor,
+		"rut_emisor":   doc.RUTEmisor,
+		"rut_receptor": doc.RUTReceptor,
 		"folio":        doc.Folio,
 		"monto_total":  doc.MontoTotal,
 		"monto_neto":   doc.MontoNeto,
@@ -68,12 +68,12 @@ func (r *SupabaseDocumentoRepository) Create(ctx context.Context, doc *models.Do
 	}
 
 	// Convertir XML a string si existe
-	if doc.XML != nil && len(doc.XML) > 0 {
-		documentoSupabase["xml"] = string(doc.XML)
+	if doc.XML != "" {
+		documentoSupabase["xml"] = doc.XML
 	}
 
 	// Convertir PDF a string si existe
-	if doc.PDFData != nil && len(doc.PDFData) > 0 {
+	if len(doc.PDFData) > 0 {
 		documentoSupabase["pdf"] = string(doc.PDFData)
 	}
 
@@ -507,7 +507,7 @@ func mapToDocumentoTributario(data map[string]interface{}) (*models.DocumentoTri
 	}
 
 	if xml, ok := data["xml"].(string); ok && xml != "" {
-		doc.XML = []byte(xml)
+		doc.XML = xml
 	}
 
 	if pdf, ok := data["pdf"].(string); ok && pdf != "" {

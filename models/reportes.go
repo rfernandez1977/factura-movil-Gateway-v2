@@ -39,8 +39,8 @@ type ErrorFrecuente struct {
 	Porcentaje  float64 `json:"porcentaje" bson:"porcentaje"`
 }
 
-// ErrorSII representa un error reportado por el SII
-type ErrorSII struct {
+// ErrorReporteSII representa un error reportado por el SII
+type ErrorReporteSII struct {
 	Codigo      string    `json:"codigo" bson:"codigo"`
 	Mensaje     string    `json:"mensaje" bson:"mensaje"`
 	Descripcion string    `json:"descripcion" bson:"descripcion"`
@@ -49,17 +49,17 @@ type ErrorSII struct {
 
 // DocumentoRechazado representa un documento que fue rechazado
 type DocumentoRechazado struct {
-	ID            string     `json:"id" bson:"_id"`
-	TipoDocumento string     `json:"tipo_documento" bson:"tipo_documento"`
-	Folio         int64      `json:"folio" bson:"folio"`
-	FechaEmision  time.Time  `json:"fecha_emision" bson:"fecha_emision"`
-	RutEmisor     string     `json:"rut_emisor" bson:"rut_emisor"`
-	RutReceptor   string     `json:"rut_receptor" bson:"rut_receptor"`
-	MontoTotal    float64    `json:"monto_total" bson:"monto_total"`
-	FechaRechazo  time.Time  `json:"fecha_rechazo" bson:"fecha_rechazo"`
-	MotivoRechazo string     `json:"motivo_rechazo" bson:"motivo_rechazo"`
-	Errores       []ErrorSII `json:"errores" bson:"errores"`
-	EstadoActual  string     `json:"estado_actual" bson:"estado_actual"`
+	ID            string            `json:"id" bson:"_id"`
+	TipoDocumento string            `json:"tipo_documento" bson:"tipo_documento"`
+	Folio         int64             `json:"folio" bson:"folio"`
+	FechaEmision  time.Time         `json:"fecha_emision" bson:"fecha_emision"`
+	RutEmisor     string            `json:"rut_emisor" bson:"rut_emisor"`
+	RutReceptor   string            `json:"rut_receptor" bson:"rut_receptor"`
+	MontoTotal    float64           `json:"monto_total" bson:"monto_total"`
+	FechaRechazo  time.Time         `json:"fecha_rechazo" bson:"fecha_rechazo"`
+	MotivoRechazo string            `json:"motivo_rechazo" bson:"motivo_rechazo"`
+	Errores       []ErrorReporteSII `json:"errores" bson:"errores"`
+	EstadoActual  string            `json:"estado_actual" bson:"estado_actual"`
 }
 
 // ReporteMetricasRendimiento representa un reporte de métricas de rendimiento

@@ -34,12 +34,14 @@ type DocumentoTributario struct {
 	TasaIVA             float64      `json:"tasa_iva" bson:"tasa_iva"`
 	MontoTotal          float64      `json:"monto_total" bson:"monto_total"`
 	Referencias         []Referencia `json:"referencias,omitempty" bson:"referencias,omitempty"`
-	Estado              string       `json:"estado" bson:"estado"`
+	Estado              EstadoDTE    `json:"estado" bson:"estado"`
 	TrackID             string       `json:"track_id,omitempty" bson:"track_id,omitempty"`
 	PDF                 string       `json:"pdf,omitempty" bson:"pdf,omitempty"`
+	PDFData             []byte       `json:"pdf_data,omitempty" bson:"-"`
 	XML                 string       `json:"xml,omitempty" bson:"xml,omitempty"`
 	CreatedAt           time.Time    `json:"created_at" bson:"created_at"`
 	UpdatedAt           time.Time    `json:"updated_at" bson:"updated_at"`
+	Timestamps          Timestamps   `json:"timestamps,omitempty" bson:"timestamps,omitempty"`
 
 	// Campos adicionales para la emisión de documentos
 	Emisor   *Emisor             `json:"emisor,omitempty" bson:"emisor,omitempty"`
