@@ -12,7 +12,7 @@ type DTEXMLModel struct {
 	XMLName   xml.Name          `xml:"DTE"`
 	Version   string            `xml:"version,attr"`
 	Documento DocumentoXMLModel `xml:"Documento"`
-	Signature SignatureXMLModel `xml:"Signature,omitempty"`
+	Signature *FirmaXMLModel    `xml:"Signature,omitempty"`
 }
 
 // DocumentoXMLModel representa un documento en XML
@@ -20,17 +20,17 @@ type DocumentoXMLModel struct {
 	XMLName     xml.Name             `xml:"Documento"`
 	ID          string               `xml:"ID,attr,omitempty"`
 	Encabezado  EncabezadoXMLModel   `xml:"Encabezado"`
-	Detalles    []DetalleXML         `xml:"Detalle"`
+	Detalle     []DetalleXML         `xml:"Detalle"`
 	Referencias []ReferenciaXMLModel `xml:"Referencias>Referencia,omitempty"`
 }
 
 // EncabezadoXMLModel representa el encabezado de un documento
 type EncabezadoXMLModel struct {
-	XMLName     xml.Name       `xml:"Encabezado"`
-	IDDocumento IDDocumentoXML `xml:"IdDoc"`
-	Emisor      EmisorXML      `xml:"Emisor"`
-	Receptor    ReceptorXML    `xml:"Receptor"`
-	Totales     TotalesXML     `xml:"Totales"`
+	XMLName  xml.Name       `xml:"Encabezado"`
+	IdDoc    IDDocumentoXML `xml:"IdDoc"`
+	Emisor   EmisorXML      `xml:"Emisor"`
+	Receptor ReceptorXML    `xml:"Receptor"`
+	Totales  TotalesXML     `xml:"Totales"`
 }
 
 // IDDocumentoXML representa la identificación del documento
@@ -72,28 +72,28 @@ type ReceptorXML struct {
 // TotalesXML representa los totales del documento
 type TotalesXML struct {
 	XMLName     xml.Name `xml:"Totales"`
-	MontoNeto   int      `xml:"MntNeto,omitempty"`
+	MntNeto     *int64   `xml:"MntNeto,omitempty"`
 	MontoExento int      `xml:"MntExe,omitempty"`
-	TasaIVA     float64  `xml:"TasaIVA,omitempty"`
-	IVA         int      `xml:"IVA,omitempty"`
-	MontoTotal  int      `xml:"MntTotal"`
+	TasaIVA     *float64 `xml:"TasaIVA,omitempty"`
+	IVA         *int64   `xml:"IVA,omitempty"`
+	MntTotal    int64    `xml:"MntTotal"`
 }
 
 // DetalleXML representa un detalle de producto o servicio
 type DetalleXML struct {
 	XMLName        xml.Name      `xml:"Detalle"`
-	NumeroLinea    int           `xml:"NroLinDet"`
+	NroLinDet      int           `xml:"NroLinDet"`
 	TipoDocumento  string        `xml:"TpoDocLiq,omitempty"`
 	Codigo         string        `xml:"CdgItem>TpoCodigo,omitempty"`
 	ValorCodigo    string        `xml:"CdgItem>VlrCodigo,omitempty"`
 	Nombre         string        `xml:"NmbItem"`
-	Descripcion    string        `xml:"DscItem,omitempty"`
-	Cantidad       float64       `xml:"QtyItem,omitempty"`
+	Descripcion    *string       `xml:"DscItem,omitempty"`
+	Cantidad       *float64      `xml:"QtyItem,omitempty"`
 	UnidadMedida   string        `xml:"UnmdItem,omitempty"`
-	PrecioUnitario float64       `xml:"PrcItem,omitempty"`
+	Precio         *float64      `xml:"PrcItem,omitempty"`
 	Descuento      float64       `xml:"DescuentoMonto,omitempty"`
 	PorcentajeDesc float64       `xml:"DescuentoPct,omitempty"`
-	SubTotal       int           `xml:"MontoItem"`
+	MontoItem      int64         `xml:"MontoItem"`
 	Impuestos      []ImpuestoXML `xml:"ImptoReten,omitempty"`
 }
 
@@ -116,13 +116,7 @@ type ReferenciaXMLModel struct {
 }
 
 // SignatureXMLModel representa la firma digital del documento
-type SignatureXMLModel struct {
-	XMLName        xml.Name      `xml:"Signature"`
-	Xmlns          string        `xml:"xmlns,attr"`
-	SignedInfo     SignedInfoXML `xml:"SignedInfo"`
-	SignatureValue string        `xml:"SignatureValue"`
-	KeyInfo        KeyInfoXML    `xml:"KeyInfo"`
-}
+type SignatureXMLModel = FirmaXMLModel
 
 // SignedInfoXML representa la información firmada
 type SignedInfoXML struct {
@@ -171,9 +165,23 @@ type DigestMethodXML struct {
 	Algorithm string   `xml:"Algorithm,attr"`
 }
 
+// KeyValueXML representa el valor de la clave
+type KeyValueXML struct {
+	XMLName     xml.Name       `xml:"KeyValue"`
+	RSAKeyValue RSAKeyValueXML `xml:"RSAKeyValue"`
+}
+
+// RSAKeyValueXML representa el valor de la clave RSA
+type RSAKeyValueXML struct {
+	XMLName  xml.Name `xml:"RSAKeyValue"`
+	Modulus  string   `xml:"Modulus"`
+	Exponent string   `xml:"Exponent"`
+}
+
 // KeyInfoXML representa la información de la clave
 type KeyInfoXML struct {
 	XMLName  xml.Name    `xml:"KeyInfo"`
+	KeyValue KeyValueXML `xml:"KeyValue,omitempty"`
 	X509Data X509DataXML `xml:"X509Data"`
 }
 
@@ -182,6 +190,14 @@ type X509DataXML struct {
 	XMLName         xml.Name `xml:"X509Data"`
 	X509Certificate string   `xml:"X509Certificate"`
 }
+
+// Alias para mayor claridad en el código
+type IDDocumentoXMLModel = IDDocumentoXML
+type EmisorXMLModel = EmisorXML
+type ReceptorXMLModel = ReceptorXML
+type TotalesXMLModel = TotalesXML
+type DetalleDTEXML = DetalleXML
+type ReferenceSignatureXML = ReferenceXML
 
 // FacturaElectronica representa una factura electrónica
 type FacturaElectronica struct {
