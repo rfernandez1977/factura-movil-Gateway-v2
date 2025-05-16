@@ -76,6 +76,31 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - Todas las dependencias son compatibles con Go 1.23
 - Se utiliza el toolchain go1.24.2
 
+## [0.1.0] - 2024-03-XX
+
+### Agregado
+- Implementación básica del validador CAF (MVP)
+  - Validación de RUT emisor
+  - Validación de tipo DTE
+  - Control de rango de folios
+  - Validación de fechas de vigencia
+  - Control de folios usados en memoria
+- Servicio de gestión de CAFs
+  - Registro de CAFs
+  - Validación de folios
+  - Consulta de estado
+- Pruebas unitarias completas
+  - Cobertura > 80%
+  - Casos de prueba para validaciones básicas
+  - Pruebas de concurrencia básicas
+
+### Pendiente para próximas versiones
+- Verificación de firmas XML
+- Persistencia de folios usados
+- Métricas y monitoreo
+- Pruebas de carga
+- Manejo avanzado de concurrencia
+
 [1.2.0]: https://github.com/tu-usuario/FMgo/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/tu-usuario/FMgo/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/tu-usuario/FMgo/releases/tag/v1.0.0 
