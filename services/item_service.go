@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // ItemService maneja la lógica de negocio de items

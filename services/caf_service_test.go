@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/tests/mocks"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
+	"github.com/fmgo/tests/mocks"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/utils"
 )
 
 type TestInput struct {

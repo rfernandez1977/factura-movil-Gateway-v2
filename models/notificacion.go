@@ -2,66 +2,114 @@ package models
 
 import "time"
 
-// TipoNotificacion define los tipos de notificaciones
-type TipoNotificacion string
+// EstadoNotificacion representa el estado de una notificación
+type EstadoNotificacion string
 
+// Estados de notificación
 const (
-	TipoNotificacionAlertaDocumento  TipoNotificacion = "ALERTA_DOCUMENTO"
-	TipoNotificacionEstadoDocumento  TipoNotificacion = "ESTADO_DOCUMENTO"
-	TipoNotificacionVencimiento      TipoNotificacion = "VENCIMIENTO"
-	TipoNotificacionErrorSistema     TipoNotificacion = "ERROR_SISTEMA"
-	TipoNotificacionActualizacionSII TipoNotificacion = "ACTUALIZACION_SII"
+	EstadoNotificacionPendiente EstadoNotificacion = "PENDIENTE"
+	EstadoNotificacionEnviada   EstadoNotificacion = "ENVIADA"
+	EstadoNotificacionEntregada EstadoNotificacion = "ENTREGADA"
+	EstadoNotificacionLeida     EstadoNotificacion = "LEIDA"
+	EstadoNotificacionError     EstadoNotificacion = "ERROR"
+	EstadoNotificacionCancelada EstadoNotificacion = "CANCELADA"
 )
 
-// Estados de las notificaciones
+// TipoNotificacion representa el tipo de notificación
+type TipoNotificacion string
+
+// Tipos de notificación
 const (
-	EstadoPendiente = "PENDIENTE"
-	EstadoEnviada   = "ENVIADA"
-	EstadoLeida     = "LEIDA"
-	EstadoError     = "ERROR"
+	NotificacionEmail   TipoNotificacion = "EMAIL"
+	NotificacionSMS     TipoNotificacion = "SMS"
+	NotificacionPush    TipoNotificacion = "PUSH"
+	NotificacionInApp   TipoNotificacion = "IN_APP"
+	NotificacionWebhook TipoNotificacion = "WEBHOOK"
 )
 
 // Notificacion representa una notificación en el sistema
 type Notificacion struct {
-	ID            string                 `json:"id" bson:"_id,omitempty"`
-	UsuarioID     string                 `json:"usuario_id" bson:"usuario_id"`
-	Tipo          TipoNotificacion       `json:"tipo" bson:"tipo"`
-	Titulo        string                 `json:"titulo" bson:"titulo"`
-	Mensaje       string                 `json:"mensaje" bson:"mensaje"`
-	Detalles      string                 `json:"detalles,omitempty" bson:"detalles,omitempty"`
-	Data          map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
-	URL           string                 `json:"url,omitempty" bson:"url,omitempty"`
-	Estado        string                 `json:"estado" bson:"estado"`
-	IntentosEnvio int                    `json:"intentos_envio" bson:"intentos_envio"`
-	FechaCreacion time.Time              `json:"fecha_creacion" bson:"fecha_creacion"`
-	FechaEnvio    time.Time              `json:"fecha_envio,omitempty" bson:"fecha_envio,omitempty"`
-	FechaLeida    time.Time              `json:"fecha_leida,omitempty" bson:"fecha_leida,omitempty"`
-	Error         string                 `json:"error,omitempty" bson:"error,omitempty"`
+	ID             string                 `json:"id" bson:"_id,omitempty"`
+	Tipo           TipoNotificacion       `json:"tipo" bson:"tipo"`
+	Titulo         string                 `json:"titulo" bson:"titulo"`
+	Mensaje        string                 `json:"mensaje" bson:"mensaje"`
+	HTML           string                 `json:"html,omitempty" bson:"html,omitempty"`
+	Destinatarios  []string               `json:"destinatarios" bson:"destinatarios"`
+	Emisor         string                 `json:"emisor" bson:"emisor"`
+	FechaCreacion  time.Time              `json:"fecha_creacion" bson:"fecha_creacion"`
+	FechaEnvio     time.Time              `json:"fecha_envio,omitempty" bson:"fecha_envio,omitempty"`
+	FechaEntrega   time.Time              `json:"fecha_entrega,omitempty" bson:"fecha_entrega,omitempty"`
+	FechaLectura   time.Time              `json:"fecha_lectura,omitempty" bson:"fecha_lectura,omitempty"`
+	Estado         EstadoNotificacion     `json:"estado" bson:"estado"`
+	ErrorMensaje   string                 `json:"error_mensaje,omitempty" bson:"error_mensaje,omitempty"`
+	Intentos       int                    `json:"intentos" bson:"intentos"`
+	MaxIntentos    int                    `json:"max_intentos" bson:"max_intentos"`
+	ProximoIntento time.Time              `json:"proximo_intento,omitempty" bson:"proximo_intento,omitempty"`
+	Adjuntos       []AdjuntoNotificacion  `json:"adjuntos,omitempty" bson:"adjuntos,omitempty"`
+	Datos          map[string]interface{} `json:"datos,omitempty" bson:"datos,omitempty"`
+	EmpresaID      string                 `json:"empresa_id" bson:"empresa_id"`
+	DocumentoID    string                 `json:"documento_id,omitempty" bson:"documento_id,omitempty"`
+	CreatedAt      time.Time              `json:"created_at" bson:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at" bson:"updated_at"`
 }
 
-// NotificacionRequest representa la solicitud para crear una notificación
+// AdjuntoNotificacion representa un archivo adjunto en una notificación
+type AdjuntoNotificacion struct {
+	ID            string    `json:"id" bson:"_id,omitempty"`
+	Nombre        string    `json:"nombre" bson:"nombre"`
+	NombreArchivo string    `json:"nombre_archivo" bson:"nombre_archivo"`
+	ContentType   string    `json:"content_type" bson:"content_type"`
+	Tamaño        int64     `json:"tamaño" bson:"tamaño"`
+	Contenido     []byte    `json:"contenido,omitempty" bson:"contenido,omitempty"`
+	URLPublica    string    `json:"url_publica,omitempty" bson:"url_publica,omitempty"`
+	CreatedAt     time.Time `json:"created_at" bson:"created_at"`
+}
+
+// PlantillaNotificacion representa una plantilla para notificaciones
+type PlantillaNotificacion struct {
+	ID            string           `json:"id" bson:"_id,omitempty"`
+	Nombre        string           `json:"nombre" bson:"nombre"`
+	Descripcion   string           `json:"descripcion" bson:"descripcion"`
+	Tipo          TipoNotificacion `json:"tipo" bson:"tipo"`
+	Asunto        string           `json:"asunto" bson:"asunto"`
+	Contenido     string           `json:"contenido" bson:"contenido"`
+	ContenidoHTML string           `json:"contenido_html,omitempty" bson:"contenido_html,omitempty"`
+	Variables     []string         `json:"variables" bson:"variables"`
+	Activa        bool             `json:"activa" bson:"activa"`
+	EmpresaID     string           `json:"empresa_id" bson:"empresa_id"`
+	CreatedAt     time.Time        `json:"created_at" bson:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at" bson:"updated_at"`
+}
+
+// NotificacionRequest representa una solicitud para enviar una notificación
 type NotificacionRequest struct {
-	Tipo         string                 `json:"tipo" binding:"required"`
-	Titulo       string                 `json:"titulo" binding:"required"`
-	Mensaje      string                 `json:"mensaje" binding:"required"`
-	Destinatario string                 `json:"destinatario" binding:"required"`
-	Prioridad    string                 `json:"prioridad" binding:"required"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Tipo          TipoNotificacion       `json:"tipo" binding:"required"`
+	Titulo        string                 `json:"titulo" binding:"required"`
+	Mensaje       string                 `json:"mensaje" binding:"required"`
+	HTML          string                 `json:"html,omitempty"`
+	Destinatarios []string               `json:"destinatarios" binding:"required,min=1"`
+	Adjuntos      []AdjuntoRequest       `json:"adjuntos,omitempty"`
+	Datos         map[string]interface{} `json:"datos,omitempty"`
+	EmpresaID     string                 `json:"empresa_id" binding:"required"`
+	DocumentoID   string                 `json:"documento_id,omitempty"`
+	PlantillaID   string                 `json:"plantilla_id,omitempty"`
+	Variables     map[string]string      `json:"variables,omitempty"`
 }
 
-// NotificacionResponse representa la respuesta de una notificación
+// AdjuntoRequest representa una solicitud para adjuntar un archivo a una notificación
+type AdjuntoRequest struct {
+	Nombre        string `json:"nombre" binding:"required"`
+	NombreArchivo string `json:"nombre_archivo" binding:"required"`
+	ContentType   string `json:"content_type" binding:"required"`
+	Contenido     []byte `json:"contenido" binding:"required"`
+}
+
+// NotificacionResponse representa la respuesta a una solicitud de notificación
 type NotificacionResponse struct {
-	ID            string                 `json:"id"`
-	Tipo          string                 `json:"tipo"`
-	Titulo        string                 `json:"titulo"`
-	Mensaje       string                 `json:"mensaje"`
-	Destinatario  string                 `json:"destinatario"`
-	FechaCreacion time.Time              `json:"fecha_creacion"`
-	Estado        string                 `json:"estado"`
-	Prioridad     string                 `json:"prioridad"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-	Leida         bool                   `json:"leida"`
-	FechaLectura  time.Time              `json:"fecha_lectura,omitempty"`
+	ID            string             `json:"id"`
+	Estado        EstadoNotificacion `json:"estado"`
+	FechaCreacion time.Time          `json:"fecha_creacion"`
+	Mensaje       string             `json:"mensaje"`
 }
 
 // HorarioNotificacion representa un rango horario para recibir notificaciones
@@ -87,8 +135,8 @@ type PreferenciasNotificacion struct {
 
 // Validate valida que todos los campos obligatorios estén presentes
 func (n *Notificacion) Validate() error {
-	if n.UsuarioID == "" {
-		return &ValidationFieldError{Field: "usuario_id", Message: "El ID del usuario es obligatorio"}
+	if n.Emisor == "" {
+		return &ValidationFieldError{Field: "emisor", Message: "El emisor es obligatorio"}
 	}
 	if n.Tipo == "" {
 		return &ValidationFieldError{Field: "tipo", Message: "El tipo de notificación es obligatorio"}
@@ -98,6 +146,9 @@ func (n *Notificacion) Validate() error {
 	}
 	if n.Mensaje == "" {
 		return &ValidationFieldError{Field: "mensaje", Message: "El mensaje es obligatorio"}
+	}
+	if len(n.Destinatarios) == 0 {
+		return &ValidationFieldError{Field: "destinatarios", Message: "Al menos un destinatario es obligatorio"}
 	}
 	return nil
 }

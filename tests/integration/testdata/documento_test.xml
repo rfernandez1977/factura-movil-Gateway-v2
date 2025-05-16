@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DTE version="1.0" xmlns="http://www.sii.cl/SiiDte">
+    <Documento ID="DOC001">
+        <Encabezado>
+            <IdDoc>
+                <TipoDTE>33</TipoDTE>
+                <Folio>1</Folio>
+                <FchEmis>2024-03-20</FchEmis>
+            </IdDoc>
+            <Emisor>
+                <RUTEmisor>76555555-5</RUTEmisor>
+                <RznSoc>Empresa de Prueba SPA</RznSoc>
+                <GiroEmis>Servicios Informáticos</GiroEmis>
+            </Emisor>
+            <Receptor>
+                <RUTRecep>66666666-6</RUTRecep>
+                <RznSocRecep>Cliente de Prueba</RznSocRecep>
+            </Receptor>
+        </Encabezado>
+        <Detalle>
+            <NroLinDet>1</NroLinDet>
+            <NmbItem>Servicio de Prueba</NmbItem>
+            <QtyItem>1</QtyItem>
+            <PrcItem>1000</PrcItem>
+            <MontoItem>1000</MontoItem>
+        </Detalle>
+        <TED>
+            <!-- Timbre Electrónico -->
+        </TED>
+    </Documento>
+</DTE> 

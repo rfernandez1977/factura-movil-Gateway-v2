@@ -1,0 +1,58 @@
+name: Security
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'  # Ejecutar cada domingo a medianoche
+
+jobs:
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.2'
+          cache: true
+
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Install nancy
+        run: go install github.com/sonatype-nexus-community/nancy@latest
+
+      - name: Run Gosec Security Scanner
+        run: |
+          mkdir -p security-reports
+          gosec -fmt=json -out=security-reports/gosec.json ./...
+          gosec -fmt=html -out=security-reports/gosec.html ./...
+
+      - name: Check Dependencies with Nancy
+        run: |
+          go list -json -m all | nancy sleuth > security-reports/nancy.txt
+
+      - name: Run Go Vulnerability Check
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest ./... > security-reports/govulncheck.txt
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: security-reports/
+
+      - name: Check for Critical Vulnerabilities
+        run: |
+          if grep -q '"severity": "HIGH"' security-reports/gosec.json || \
+             grep -q '"severity": "CRITICAL"' security-reports/gosec.json || \
+             grep -q "Critical" security-reports/nancy.txt; then
+            echo "Se encontraron vulnerabilidades críticas"
+            exit 1
+          fi 

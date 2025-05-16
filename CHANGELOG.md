@@ -1,76 +1,81 @@
-# Registro de Cambios (CHANGELOG)
+# Changelog
 
-## [1.0.0] - 2024-03-XX
+Todos los cambios notables en este proyecto serán documentados en este archivo.
 
-### Refactorización de Sistema de Validación
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### Consolidación de Tipos y Estructuras
-- Eliminadas definiciones duplicadas de tipos comunes:
-  - `Emisor`
-  - `Receptor`
-  - `Detalle`
-- Centralización de estructuras en archivos principales
-- Implementación de tipos consistentes para todo el sistema
+## [1.2.0] - 2024-01-20
 
-#### Sistema de Validación Mejorado
-- Creada nueva interfaz `Validator` para estandarización
-- Implementado `BaseValidator` como estructura base
-- Nuevo sistema de manejo de errores con `ValidationError`
-- Añadida trazabilidad con IDs únicos y timestamps
+### Added
+- Implementación completa del sistema de firma digital XML-DSIG
+- Nuevo servicio XMLSignatureService para manejo de firmas
+- Sistema de caché para certificados digitales
+- Validación de firmas y certificados
+- Soporte para múltiples formatos de certificados (P12/PEM)
+- Sistema de logging multinivel con rotación
+- Documentación técnica completa
+- Nuevas guías de troubleshooting y desarrollo
 
-#### Nuevas Estructuras de Validación
-- `ValidationRule`: Reglas de validación configurables
-  - Nombre y descripción
-  - Tipo de validación
-  - Expresión de validación
-  - Mensajes personalizados
-  - Control de estado
+### Changed
+- Refactorización completa del sistema de firma digital
+- Mejora en el manejo de errores y validaciones
+- Optimización del sistema de caché
+- Actualización de dependencias core
+- Mejora en la estructura del proyecto
 
-- `ValidationConfig`: Configuración centralizada
-  - Agrupación de reglas
-  - Control de límites de errores
-  - Opciones de detención en error
+### Fixed
+- Corrección en la validación de certificados expirados
+- Mejora en el manejo de memoria en procesamiento XML
+- Corrección de race conditions en caché de certificados
+- Optimización de queries y conexiones a base de datos
 
-- `ValidationResponse`: Respuestas estructuradas
-  - ID de documento
-  - Estado de validación
-  - Resultados detallados
-  - Lista de errores
+## [1.1.0] - 2024-01-10
 
-#### Funciones de Validación
-- Consolidación de funciones duplicadas:
-  - `ValidateRUT`
-  - `ValidateEmail`
-  - Otras validaciones comunes
-- Implementación de sistema de sugerencias
-- Mejora en el manejo de metadatos
+### Added
+- Implementación inicial del sistema de firma digital
+- Validación básica de documentos XML
+- Integración con servicios SII
+- Sistema básico de logging
 
-### Mejoras en el Sistema
-- Implementación de logging consistente
-- Mejor manejo de errores
-- Sistema de sugerencias para correcciones
-- Trazabilidad mejorada
+### Changed
+- Actualización de estructura de proyecto
+- Mejora en manejo de configuraciones
+- Optimización de validaciones XSD
 
-### Documentación
-- Añadidos comentarios explicativos
-- Documentación de interfaces
-- Ejemplos de uso
-- Guías de implementación
+### Fixed
+- Corrección de errores en validación de schemas
+- Mejora en manejo de errores de conexión
+- Corrección de memory leaks en procesamiento XML
 
-### Cambios Técnicos
-- Eliminación de código redundante
-- Optimización de importaciones
-- Mejora en la estructura de directorios
-- Estandarización de nombres y formatos
+## [1.0.0] - 2024-01-01
 
-### Correcciones
-- Eliminación de imports no utilizados
-- Corrección de errores de linting
-- Estandarización de formatos de tiempo
-- Mejora en el manejo de contextos
+### Added
+- Primera versión estable del sistema
+- Funcionalidades básicas de validación
+- Integración inicial con SII
+- Documentación básica
 
-## Próximos Pasos
-- Implementación de pruebas unitarias adicionales
-- Documentación de API
-- Ejemplos de implementación
-- Guías de migración 
+## [Unreleased]
+
+### Dependencias Actualizadas
+- `github.com/stretchr/testify` actualizado a v1.10.0
+- `github.com/go-redis/redis/v8` en v8.11.5
+- `go.mongodb.org/mongo-driver` en v1.17.3
+
+### Dependencias Principales
+- gin-gonic/gin v1.9.1 - Framework web
+- go-redis/redis/v8 v8.11.5 - Cliente Redis
+- mongodb/mongo-driver v1.17.3 - Driver MongoDB
+- stretchr/testify v1.10.0 - Framework de testing
+- streadway/amqp v1.1.0 - Cliente RabbitMQ
+- prometheus/client_golang v1.11.1 - Métricas
+- uber/zap v1.24.0 - Logging
+
+### Notas de Compatibilidad
+- Todas las dependencias son compatibles con Go 1.23
+- Se utiliza el toolchain go1.24.2
+
+[1.2.0]: https://github.com/tu-usuario/FMgo/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/tu-usuario/FMgo/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/tu-usuario/FMgo/releases/tag/v1.0.0 

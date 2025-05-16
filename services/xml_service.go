@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
+	"github.com/fmgo/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

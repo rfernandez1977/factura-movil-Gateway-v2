@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/cursor/FMgo/api"
+	"github.com/fmgo/api"
 )
 
 // MetricsHandlers maneja las métricas

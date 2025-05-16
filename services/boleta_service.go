@@ -3,19 +3,19 @@ package services
 import (
 	"time"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/models"
+	"github.com/fmgo/utils"
 	"go.uber.org/zap"
 )
 
 // BoletaService maneja las operaciones relacionadas con boletas
 type BoletaService struct {
 	siiService SIIClientInterface
-	boletaRepo interface{} // Repositorio de boletas
+	boletaRepo BoletaRepository // Repositorio de boletas
 }
 
 // NewBoletaService crea una nueva instancia del servicio de boletas
-func NewBoletaService(siiService SIIClientInterface, boletaRepo interface{}) *BoletaService {
+func NewBoletaService(siiService SIIClientInterface, boletaRepo BoletaRepository) *BoletaService {
 	return &BoletaService{
 		siiService: siiService,
 		boletaRepo: boletaRepo,
@@ -48,7 +48,7 @@ func (s *BoletaService) CrearBoleta(request *models.BoletaRequest) (*models.Bole
 		Folio:               1,
 		MontoTotal:          10000,
 		FechaEmision:        time.Now(),
-		RutEmisor:           request.RutEmisor,
+		RUTEmisor:           request.RutEmisor,
 		RazonSocialEmisor:   "Empresa de Prueba",
 		RazonSocialReceptor: "Cliente de Prueba",
 		Estado:              "PENDIENTE",
@@ -90,7 +90,7 @@ func (s *BoletaService) GetBoleta(id string) (*models.Boleta, error) {
 		Folio:               1,
 		MontoTotal:          10000,
 		FechaEmision:        time.Now(),
-		RutEmisor:           "76.000.000-0",
+		RUTEmisor:           "76.000.000-0",
 		RazonSocialEmisor:   "Empresa de Prueba",
 		RazonSocialReceptor: "Cliente de Prueba",
 		Estado:              "ACEPTADO",
@@ -147,7 +147,7 @@ func (s *BoletaService) ListarBoletas(rutEmisor string, fechaInicio, fechaFin ti
 			Folio:               1,
 			MontoTotal:          10000,
 			FechaEmision:        time.Now(),
-			RutEmisor:           rutEmisor,
+			RUTEmisor:           rutEmisor,
 			RazonSocialEmisor:   "Empresa de Prueba",
 			RazonSocialReceptor: "Cliente de Prueba",
 			Estado:              "ACEPTADO",
@@ -158,7 +158,7 @@ func (s *BoletaService) ListarBoletas(rutEmisor string, fechaInicio, fechaFin ti
 			Folio:               2,
 			MontoTotal:          20000,
 			FechaEmision:        time.Now(),
-			RutEmisor:           rutEmisor,
+			RUTEmisor:           rutEmisor,
 			RazonSocialEmisor:   "Empresa de Prueba",
 			RazonSocialReceptor: "Cliente de Prueba 2",
 			Estado:              "ACEPTADO",

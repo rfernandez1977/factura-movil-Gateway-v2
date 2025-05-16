@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 	"github.com/go-redis/redis/v8"
 )
 

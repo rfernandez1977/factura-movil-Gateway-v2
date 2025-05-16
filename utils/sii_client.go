@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // SIIClient representa un cliente para interactuar con el SII

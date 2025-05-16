@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cursor/FMgo/gateway/api"
-	"github.com/cursor/FMgo/gateway/metrics"
-	"github.com/cursor/FMgo/gateway/models"
+	"github.com/fmgo/gateway/api"
+	"github.com/fmgo/gateway/metrics"
+	"github.com/fmgo/gateway/models"
 )
 
 // SearchClientsHandler maneja la búsqueda de clientes

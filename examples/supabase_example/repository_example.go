@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/repository/supabase"
-	supaClient "github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
+	"github.com/fmgo/repository/supabase"
+	supaClient "github.com/fmgo/supabase"
 )
 
 // RunRepositoryExample ejecuta un ejemplo de uso del repositorio de Supabase para documentos

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // HTTPClient define la interfaz para el cliente HTTP

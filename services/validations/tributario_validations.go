@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cursor/FMgo/domain"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/domain"
+	"github.com/fmgo/models"
 )
 
 // TributarioValidation maneja las validaciones de negocio para documentos tributarios

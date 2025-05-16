@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/cursor/FMgo/api"
+	"github.com/fmgo/api"
 )
 
 // BaseHandler contiene la configuración común para todos los handlers

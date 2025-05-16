@@ -2,12 +2,24 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/utils/validation"
+	"github.com/fmgo/models"
+	"github.com/fmgo/utils/validation"
 	"github.com/go-redis/redis/v8"
+)
+
+const (
+	// TTLValidationConfig tiempo de vida de la configuración de validación en caché
+	TTLValidationConfig = 24 * time.Hour
+	// TTLValidationResult tiempo de vida del resultado de validación en caché
+	TTLValidationResult = 1 * time.Hour
+	// PrefijoValidationConfig prefijo para las claves de configuración
+	PrefijoValidationConfig = "val_config:"
+	// PrefijoValidationResult prefijo para las claves de resultados
+	PrefijoValidationResult = "val_result:"
 )
 
 // DTEValidationRule representa una regla de validación específica para DTE
@@ -48,21 +60,77 @@ func NewDTEValidationService(redisClient *redis.Client) *DTEValidationService {
 	}
 }
 
+// getConfigCacheKey genera una clave de caché para la configuración
+func (s *DTEValidationService) getConfigCacheKey(tipo string) string {
+	return fmt.Sprintf("%s%s", PrefijoValidationConfig, tipo)
+}
+
+// getResultCacheKey genera una clave de caché para el resultado
+func (s *DTEValidationService) getResultCacheKey(doc *models.DocumentoTributario) string {
+	return fmt.Sprintf("%s%s:%d", PrefijoValidationResult, doc.TipoDTE, doc.Folio)
+}
+
 // RegisterValidation registra una configuración de validación
-func (s *DTEValidationService) RegisterValidation(tipo string, config *models.ValidationConfig) error {
+func (s *DTEValidationService) RegisterValidation(ctx context.Context, tipo string, config *models.ValidationConfig) error {
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("configuración de validación inválida: %v", err)
 	}
+
+	// Guardar en memoria
 	s.validations[tipo] = config
+
+	// Guardar en caché
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("error serializando configuración: %w", err)
+	}
+
+	key := s.getConfigCacheKey(tipo)
+	if err := s.cache.Set(ctx, key, data, TTLValidationConfig).Err(); err != nil {
+		return fmt.Errorf("error guardando configuración en caché: %w", err)
+	}
+
 	return nil
+}
+
+// getValidationConfig obtiene la configuración de validación
+func (s *DTEValidationService) getValidationConfig(ctx context.Context, tipo string) (*models.ValidationConfig, error) {
+	// Intentar obtener de memoria
+	if config, ok := s.validations[tipo]; ok {
+		return config, nil
+	}
+
+	// Intentar obtener de caché
+	key := s.getConfigCacheKey(tipo)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		var config models.ValidationConfig
+		if err := json.Unmarshal(data, &config); err == nil {
+			// Guardar en memoria para futuras consultas
+			s.validations[tipo] = &config
+			return &config, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no hay configuración de validación para el tipo de documento %s", tipo)
 }
 
 // ValidateDTE valida un documento tributario
 func (s *DTEValidationService) ValidateDTE(ctx context.Context, doc *models.DocumentoTributario) ([]*models.ValidationFieldError, error) {
-	// Obtener configuración de validación para el tipo de documento
-	config, ok := s.validations[doc.TipoDTE]
-	if !ok {
-		return nil, fmt.Errorf("no hay configuración de validación para el tipo de documento %s", doc.TipoDTE)
+	// Intentar obtener resultado de caché
+	key := s.getResultCacheKey(doc)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		var errors []*models.ValidationFieldError
+		if err := json.Unmarshal(data, &errors); err == nil {
+			return errors, nil
+		}
+	}
+
+	// Obtener configuración de validación
+	config, err := s.getValidationConfig(ctx, doc.TipoDTE)
+	if err != nil {
+		return nil, err
 	}
 
 	validator := &models.BaseValidator{}
@@ -107,7 +175,16 @@ func (s *DTEValidationService) ValidateDTE(ctx context.Context, doc *models.Docu
 		}
 	}
 
-	return validator.GetErrors(), nil
+	errors := validator.GetErrors()
+
+	// Guardar resultado en caché
+	if data, err := json.Marshal(errors); err == nil {
+		if err := s.cache.Set(ctx, key, data, TTLValidationResult).Err(); err != nil {
+			fmt.Printf("error guardando resultado en caché: %v\n", err)
+		}
+	}
+
+	return errors, nil
 }
 
 // validateFormat valida el formato de un valor
@@ -152,5 +229,51 @@ func (s *DTEValidationService) ApplySuggestions(ctx context.Context, doc *models
 			return fmt.Errorf("error aplicando sugerencia para %s: %v", suggestion.Campo, err)
 		}
 	}
+
+	// Invalidar resultado de validación en caché
+	key := s.getResultCacheKey(doc)
+	if err := s.cache.Del(ctx, key).Err(); err != nil {
+		fmt.Printf("error invalidando resultado en caché: %v\n", err)
+	}
+
+	return nil
+}
+
+// LimpiarCache limpia el caché de validación
+func (s *DTEValidationService) LimpiarCache(ctx context.Context) error {
+	var cursor uint64
+	var keys []string
+
+	// Obtener todas las claves con los prefijos
+	for {
+		var result []string
+		var err error
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoValidationConfig+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de configuración: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoValidationResult+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de resultados: %w", err)
+		}
+		keys = append(keys, result...)
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	// Eliminar todas las claves encontradas
+	if len(keys) > 0 {
+		if err := s.cache.Del(ctx, keys...).Err(); err != nil {
+			return fmt.Errorf("error eliminando claves del caché: %w", err)
+		}
+	}
+
+	// Limpiar caché en memoria
+	s.validations = make(map[string]*models.ValidationConfig)
+
 	return nil
 }

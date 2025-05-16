@@ -3,8 +3,8 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/cursor/FMgo/controllers"
-	"github.com/cursor/FMgo/services"
+	"github.com/fmgo/controllers"
+	"github.com/fmgo/services"
 )
 
 // SetupRouter configura las rutas de la aplicación

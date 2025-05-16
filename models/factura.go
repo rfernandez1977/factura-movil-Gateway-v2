@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/cursor/FMgo/domain"
+	"github.com/fmgo/domain"
 )
 
 // Factura representa una factura electrónica

@@ -3,7 +3,7 @@ package handlers
 import (
 	"time"
 
-	"github.com/cursor/FMgo/api"
+	"github.com/fmgo/api"
 	"github.com/gin-gonic/gin"
 )
 

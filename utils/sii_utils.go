@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // SIIUtils contiene utilidades específicas para el SII

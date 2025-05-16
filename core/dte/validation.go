@@ -3,8 +3,8 @@ package dte
 import (
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/utils/validation"
+	"github.com/fmgo/models"
+	"github.com/fmgo/utils/validation"
 )
 
 // Constantes para los tipos de documentos

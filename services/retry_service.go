@@ -2,18 +2,36 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+)
+
+const (
+	// TTLReintento tiempo de vida de los reintentos en caché
+	TTLReintento = 24 * time.Hour
+	// TTLFlujo tiempo de vida de los flujos en caché
+	TTLFlujo = 12 * time.Hour
+	// TTLPaso tiempo de vida de los pasos en caché
+	TTLPaso = 12 * time.Hour
+	// PrefijoReintento prefijo para las claves de reintento
+	PrefijoReintento = "reintento:"
+	// PrefijoFlujo prefijo para las claves de flujo
+	PrefijoFlujo = "flujo:"
+	// PrefijoPaso prefijo para las claves de paso
+	PrefijoPaso = "paso:"
+	// PrefijoIntentos prefijo para las claves de intentos
+	PrefijoIntentos = "intentos:"
 )
 
 // RetryService maneja los reintentos de operaciones
@@ -57,6 +75,26 @@ func NewRetryService(redisClient *redis.Client, db *mongo.Database) *RetryServic
 	}
 }
 
+// getReintentoCacheKey genera una clave de caché para reintento
+func (s *RetryService) getReintentoCacheKey(id primitive.ObjectID) string {
+	return fmt.Sprintf("%s%s", PrefijoReintento, id.Hex())
+}
+
+// getFlujoCacheKey genera una clave de caché para flujo
+func (s *RetryService) getFlujoCacheKey(id primitive.ObjectID) string {
+	return fmt.Sprintf("%s%s", PrefijoFlujo, id.Hex())
+}
+
+// getPasoCacheKey genera una clave de caché para paso
+func (s *RetryService) getPasoCacheKey(id primitive.ObjectID) string {
+	return fmt.Sprintf("%s%s", PrefijoPaso, id.Hex())
+}
+
+// getIntentosCacheKey genera una clave de caché para intentos
+func (s *RetryService) getIntentosCacheKey(operationID string) string {
+	return fmt.Sprintf("%s%s", PrefijoIntentos, operationID)
+}
+
 // AgregarReintento agrega un elemento a la cola de reintentos
 func (s *RetryService) AgregarReintento(ctx context.Context, reintento *models.ColaReintentos) error {
 	collection := s.db.Collection("cola_reintentos")
@@ -65,8 +103,46 @@ func (s *RetryService) AgregarReintento(ctx context.Context, reintento *models.C
 		reintento.ID = primitive.NewObjectID()
 	}
 
+	// Guardar en base de datos
 	_, err := collection.InsertOne(ctx, reintento)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Guardar en caché
+	if err := s.guardarReintentoEnCache(ctx, reintento); err != nil {
+		// Solo logear error de caché, no afecta operación principal
+		fmt.Printf("error guardando reintento en caché: %v\n", err)
+	}
+
+	return nil
+}
+
+// guardarReintentoEnCache guarda un reintento en caché
+func (s *RetryService) guardarReintentoEnCache(ctx context.Context, reintento *models.ColaReintentos) error {
+	data, err := json.Marshal(reintento)
+	if err != nil {
+		return fmt.Errorf("error serializando reintento: %w", err)
+	}
+
+	key := s.getReintentoCacheKey(reintento.ID)
+	return s.cache.Set(ctx, key, data, TTLReintento).Err()
+}
+
+// obtenerReintentoDeCache obtiene un reintento del caché
+func (s *RetryService) obtenerReintentoDeCache(ctx context.Context, id primitive.ObjectID) (*models.ColaReintentos, error) {
+	key := s.getReintentoCacheKey(id)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	var reintento models.ColaReintentos
+	if err := json.Unmarshal(data, &reintento); err != nil {
+		return nil, fmt.Errorf("error deserializando reintento: %w", err)
+	}
+
+	return &reintento, nil
 }
 
 // ProcesarReintentos procesa los reintentos pendientes
@@ -130,20 +206,46 @@ func (s *RetryService) procesarReintento(ctx context.Context, reintento *models.
 		reintento.Estado = models.EstadoReintentoCompletado
 	}
 
-	// Actualizar el reintento
+	// Actualizar en base de datos
 	collection := s.db.Collection("cola_reintentos")
 	_, err = collection.ReplaceOne(ctx, bson.M{"_id": reintento.ID}, reintento)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Actualizar en caché
+	if err := s.guardarReintentoEnCache(ctx, reintento); err != nil {
+		fmt.Printf("error actualizando reintento en caché: %v\n", err)
+	}
+
+	return nil
 }
 
 // obtenerFlujo obtiene un flujo por su ID
 func (s *RetryService) obtenerFlujo(ctx context.Context, id primitive.ObjectID) (*models.FlujoIntegracion, error) {
-	collection := s.db.Collection("flujos_integracion")
+	// Intentar obtener del caché
+	key := s.getFlujoCacheKey(id)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		var flujo models.FlujoIntegracion
+		if err := json.Unmarshal(data, &flujo); err == nil {
+			return &flujo, nil
+		}
+	}
 
+	// Si no está en caché, obtener de base de datos
+	collection := s.db.Collection("flujos_integracion")
 	var flujo models.FlujoIntegracion
-	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&flujo)
+	err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&flujo)
 	if err != nil {
 		return nil, err
+	}
+
+	// Guardar en caché
+	if data, err := json.Marshal(flujo); err == nil {
+		if err := s.cache.Set(ctx, key, data, TTLFlujo).Err(); err != nil {
+			fmt.Printf("error guardando flujo en caché: %v\n", err)
+		}
 	}
 
 	return &flujo, nil
@@ -151,12 +253,29 @@ func (s *RetryService) obtenerFlujo(ctx context.Context, id primitive.ObjectID) 
 
 // obtenerPaso obtiene un paso por su ID
 func (s *RetryService) obtenerPaso(ctx context.Context, id primitive.ObjectID) (*models.PasoFlujo, error) {
-	collection := s.db.Collection("pasos_flujo")
+	// Intentar obtener del caché
+	key := s.getPasoCacheKey(id)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		var paso models.PasoFlujo
+		if err := json.Unmarshal(data, &paso); err == nil {
+			return &paso, nil
+		}
+	}
 
+	// Si no está en caché, obtener de base de datos
+	collection := s.db.Collection("pasos_flujo")
 	var paso models.PasoFlujo
-	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&paso)
+	err = collection.FindOne(ctx, bson.M{"_id": id}).Decode(&paso)
 	if err != nil {
 		return nil, err
+	}
+
+	// Guardar en caché
+	if data, err := json.Marshal(paso); err == nil {
+		if err := s.cache.Set(ctx, key, data, TTLPaso).Err(); err != nil {
+			fmt.Printf("error guardando paso en caché: %v\n", err)
+		}
 	}
 
 	return &paso, nil
@@ -225,7 +344,7 @@ func (s *RetryService) Retry(ctx context.Context, operationID string, config *Re
 
 // getAttempts obtiene el número de intentos previos
 func (s *RetryService) getAttempts(ctx context.Context, operationID string) (int, error) {
-	key := fmt.Sprintf("retry:%s:attempts", operationID)
+	key := s.getIntentosCacheKey(operationID)
 	attempts, err := s.cache.Get(ctx, key).Int()
 	if err == redis.Nil {
 		return 0, nil
@@ -235,21 +354,25 @@ func (s *RetryService) getAttempts(ctx context.Context, operationID string) (int
 
 // recordAttempt registra un nuevo intento
 func (s *RetryService) recordAttempt(ctx context.Context, operationID string) error {
-	key := fmt.Sprintf("retry:%s:attempts", operationID)
-	return s.cache.Incr(ctx, key).Err()
+	key := s.getIntentosCacheKey(operationID)
+	pipe := s.cache.Pipeline()
+	pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, TTLReintento)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 // clearAttempts limpia los intentos registrados
 func (s *RetryService) clearAttempts(ctx context.Context, operationID string) error {
-	key := fmt.Sprintf("retry:%s:attempts", operationID)
+	key := s.getIntentosCacheKey(operationID)
 	return s.cache.Del(ctx, key).Err()
 }
 
 // isRetryableError verifica si un error permite reintento
 func (s *RetryService) isRetryableError(err error, retryableErrors []string) bool {
 	errStr := err.Error()
-	for _, retryable := range retryableErrors {
-		if strings.Contains(strings.ToLower(errStr), strings.ToLower(retryable)) {
+	for _, retryableErr := range retryableErrors {
+		if strings.Contains(strings.ToLower(errStr), strings.ToLower(retryableErr)) {
 			return true
 		}
 	}
@@ -261,14 +384,62 @@ func (s *RetryService) calculateDelay(attempts int, config *RetryConfig) time.Du
 	// Calcular retraso base con backoff exponencial
 	delay := float64(config.InitialDelay) * math.Pow(config.BackoffFactor, float64(attempts))
 
-	// Aplicar jitter
-	jitter := delay * config.JitterFactor
-	delay += (rand.Float64() * 2 * jitter) - jitter
-
-	// Limitar al retraso máximo
+	// Aplicar límite máximo
 	if delay > float64(config.MaxDelay) {
 		delay = float64(config.MaxDelay)
 	}
 
+	// Aplicar jitter
+	jitter := (rand.Float64()*2 - 1) * config.JitterFactor * delay
+	delay = delay + jitter
+
 	return time.Duration(delay)
+}
+
+// LimpiarCache limpia el caché del servicio
+func (s *RetryService) LimpiarCache(ctx context.Context) error {
+	var cursor uint64
+	var keys []string
+
+	// Obtener todas las claves con los prefijos
+	for {
+		var result []string
+		var err error
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoReintento+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de reintento: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoFlujo+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de flujo: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoPaso+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de paso: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoIntentos+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de intentos: %w", err)
+		}
+		keys = append(keys, result...)
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	// Eliminar todas las claves encontradas
+	if len(keys) > 0 {
+		if err := s.cache.Del(ctx, keys...).Err(); err != nil {
+			return fmt.Errorf("error eliminando claves del caché: %w", err)
+		}
+	}
+
+	return nil
 }

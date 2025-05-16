@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cursor/FMgo/controllers"
-	"github.com/cursor/FMgo/middleware"
-	"github.com/cursor/FMgo/services"
+	"github.com/fmgo/controllers"
+	"github.com/fmgo/middleware"
+	"github.com/fmgo/services"
 	"gorm.io/gorm"
 )
 

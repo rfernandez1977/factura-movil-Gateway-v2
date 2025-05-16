@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cursor/FMgo/gateway/api"
-	"github.com/cursor/FMgo/gateway/metrics"
+	"github.com/fmgo/gateway/api"
+	"github.com/fmgo/gateway/metrics"
 )
 
 // validateDocumentData validates required fields for documents

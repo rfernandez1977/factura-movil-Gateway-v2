@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cursor/FMgo/api"
+	"github.com/fmgo/api"
 )
 
 type ProductDescriptionHandlers struct {

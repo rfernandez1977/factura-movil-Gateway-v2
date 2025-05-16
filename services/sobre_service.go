@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // SobreService representa el servicio para gestionar sobres de envío

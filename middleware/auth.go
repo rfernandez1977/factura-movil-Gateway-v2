@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/utils"
 
 	"github.com/gin-gonic/gin"
 )

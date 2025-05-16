@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/cursor/FMgo/domain"
+	"github.com/fmgo/domain"
 )
 
 // ValidationService implementa la interfaz domain.ValidationService

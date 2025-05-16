@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/models"
+	"github.com/fmgo/supabase"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
@@ -165,38 +165,13 @@ func (s *ConfiguracionService) ActualizarConfiguracion(config *models.Configurac
 
 // ObtenerConfiguracionSII obtiene la configuración SII de una empresa
 func (s *ConfiguracionService) ObtenerConfiguracionSII(empresaID string) (*models.ConfiguracionSIIEmpresa, error) {
-	ctx := context.Background()
-
-	// Obtener de la base de datos
-	var configSII models.ConfiguracionSIIEmpresa
-	var err error
-
-	if s.supabaseClient != nil {
-		// Obtener de Supabase
-		req := s.supabaseClient.GetClient().From("configuraciones_sii").Select("*", "", false).Eq("empresa_id", empresaID)
-		data, _, err := req.Execute()
-		if err != nil {
-			return nil, fmt.Errorf("error obteniendo configuración SII: %v", err)
-		}
-
-		// Decodificar respuesta
-		err = json.Unmarshal(data, &configSII)
-		if err != nil {
-			return nil, fmt.Errorf("error decodificando configuración SII: %v", err)
-		}
-	} else if s.db != nil {
-		err = s.db.Collection("configuraciones_sii").FindOne(
-			ctx,
-			bson.M{"empresa_id": empresaID},
-		).Decode(&configSII)
-		if err != nil {
-			return nil, fmt.Errorf("error obteniendo configuración SII: %v", err)
-		}
-	} else {
-		return nil, errors.New("no se ha configurado una fuente de datos")
+	// Obtener la configuración completa
+	config, err := s.ObtenerConfiguracion(empresaID)
+	if err != nil {
+		return nil, err
 	}
 
-	return &configSII, nil
+	return &config.ConfigSII, nil
 }
 
 // ActualizarConfiguracionSII actualiza la configuración del SII para una empresa

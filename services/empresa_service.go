@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // EmpresaService maneja la lógica de negocio de empresas

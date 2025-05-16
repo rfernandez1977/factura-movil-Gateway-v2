@@ -3,9 +3,9 @@ package utils
 import (
 	"time"
 
-	"github.com/cursor/FMgo/core/dte"
-	"github.com/cursor/FMgo/domain"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/core/dte"
+	"github.com/fmgo/domain"
+	"github.com/fmgo/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

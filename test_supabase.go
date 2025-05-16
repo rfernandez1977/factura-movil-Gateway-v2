@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/config"
+	"github.com/fmgo/supabase"
 )
 
 func main() {

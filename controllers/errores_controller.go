@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/services"
+	"github.com/fmgo/models"
+	"github.com/fmgo/services"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"

@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 	"github.com/lestrrat-go/libxml2"
 	"github.com/lestrrat-go/libxml2/xsd"
 )

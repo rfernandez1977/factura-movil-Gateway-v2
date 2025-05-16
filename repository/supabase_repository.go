@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/supabase"
 )
 
 // SupabaseRepository implementa el patrón repositorio para Supabase

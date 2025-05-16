@@ -37,4 +37,66 @@ go.work
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+Thumbs.db
+
+# Binarios y ejecutables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Archivos de prueba
+*.test
+*.tmp
+coverage.out
+coverage.html
+
+# Archivos de configuración local
+.env
+*.local.yaml
+*.local.yml
+*.local.json
+
+# Directorios de desarrollo
+/dev/config/
+/test/config/
+.DS_Store
+.idea/
+.vscode/
+
+# Certificados y archivos sensibles
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+/dev/config/certs/
+/test/config/certs/
+/dev/config/caf/
+/test/config/caf/
+
+# Dependencias
+/vendor/
+/node_modules/
+
+# Logs
+*.log
+logs/
+tmp/
+
+# Cache y archivos temporales
+.cache/
+*.swp
+*.swo
+*~
+
+# Archivos de base de datos
+*.db
+*.sqlite
+
+# Archivos de configuración específicos del sistema
+.DS_Store
 Thumbs.db 

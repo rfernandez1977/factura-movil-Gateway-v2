@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/utils"
 )
 
 // UtilsService proporciona métodos de utilidad

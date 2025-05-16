@@ -3,8 +3,8 @@ package firma
 import (
 	"testing"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 
 	"github.com/stretchr/testify/assert"
 )

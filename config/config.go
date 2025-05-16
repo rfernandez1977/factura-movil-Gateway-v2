@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 	"github.com/supabase-community/postgrest-go"
 )
 
@@ -159,9 +159,9 @@ func GetDefaultConfig() *Config {
 	config.Security.CORSOrigins = []string{"*"}
 
 	// Configuración de Supabase
-	config.Supabase.URL = "https://example.supabase.co"
-	config.Supabase.APIKey = "your-api-key"
-	config.Supabase.ServiceKey = "your-service-key"
+	config.Supabase.URL = "https://hptxgcuajsdupooptsax.supabase.co"
+	config.Supabase.APIKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdHhnY3VhanNkdXBvb3B0c2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzU0NTksImV4cCI6MjA2MTY1MTQ1OX0.RXfZQSN90uIMa9oEZOoqmAIrm8mWafBKaxM461d_E9c"
+	config.Supabase.ServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdHhnY3VhanNkdXBvb3B0c2F4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3NTQ1OSwiZXhwIjoyMDYxNjUxNDU5fQ.GHF60p6hnBvfpZaxxtFE5SjQtdbkRpppjdjkmJq0GoU"
 	config.Supabase.AnonKey = "your-anon-key"
 	config.Supabase.Timeout = 30
 	config.Supabase.MaxRetries = 3

@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // ItemValidator valida los items de un documento

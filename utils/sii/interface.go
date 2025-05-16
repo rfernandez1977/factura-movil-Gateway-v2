@@ -1,6 +1,6 @@
 package sii
 
-import "github.com/cursor/FMgo/models"
+import "github.com/fmgo/models"
 
 // SIIService define la interfaz para el servicio de integración con el SII
 type SIIService interface {

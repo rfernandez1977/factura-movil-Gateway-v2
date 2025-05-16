@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/cursor/FMgo/config"
+	"github.com/fmgo/config"
 )
 
 // AuthService maneja la autenticación y autorización

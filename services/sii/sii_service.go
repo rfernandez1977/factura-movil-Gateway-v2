@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // SIIService define la interfaz para el servicio SII

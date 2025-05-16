@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // CodigoError representa los códigos de error de validación

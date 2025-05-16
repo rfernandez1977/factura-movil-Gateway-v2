@@ -1,8 +1,8 @@
 package metrics
 
 import (
-	"github.com/cursor/FMgo/domain"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/domain"
+	"github.com/fmgo/models"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/services"
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
+	"github.com/fmgo/services"
+	"github.com/fmgo/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -22,11 +22,66 @@ type BoletaController struct {
 
 // NewBoletaController crea una nueva instancia del controlador de boletas
 func NewBoletaController(boletaService *services.BoletaService, config *config.SupabaseConfig) *BoletaController {
+	// Inicialización de servicios auxiliares utilizando configuración
+	pdfConfig := config.GetPDFConfig()
+	emailConfig := config.GetEmailConfig()
+
+	pdfService := services.NewPDFService(
+		config,
+		pdfConfig.TemplatePath,
+		pdfConfig.TempPath,
+	)
+
+	emailService := services.NewEmailService(
+		config,
+		emailConfig.SMTPServer,
+		emailConfig.SMTPPort,
+		emailConfig.SMTPUser,
+		emailConfig.SMTPPassword,
+		emailConfig.FromEmail,
+		emailConfig.FromName,
+	)
+
 	return &BoletaController{
 		boletaService: boletaService,
-		pdfService:    services.NewPDFService(config, "templates/pdf", "temp/pdf"),
-		emailService:  services.NewEmailService(config, "smtp.gmail.com", 587, "user@example.com", "password", "sistema@ejemplo.com", "Sistema de Facturación"),
+		pdfService:    pdfService,
+		emailService:  emailService,
 	}
+}
+
+// verificarPermisoBoleta verifica si el usuario tiene permisos para acceder a una boleta
+// Retorna la boleta si tiene permisos, o nil y un error si no tiene permiso o hay algún problema
+func (c *BoletaController) verificarPermisoBoleta(ctx *gin.Context, id string, endpoint string) (*models.Boleta, int, error) {
+	// Verificar permisos
+	jwtUtils := utils.NewJWTUtils()
+	rutEmisor, err := utils.GetRut(ctx.GetHeader("Authorization"), jwtUtils)
+	if err != nil {
+		utils.LogError(err, zap.String("endpoint", endpoint))
+		return nil, http.StatusUnauthorized, fmt.Errorf("error al verificar autenticación: %w", err)
+	}
+
+	// Obtener boleta para verificar que pertenezca al emisor
+	boleta, err := c.boletaService.GetBoleta(id)
+	if err != nil {
+		utils.LogError(err, zap.String("endpoint", endpoint), zap.String("id", id))
+		return nil, http.StatusInternalServerError, err
+	}
+
+	if boleta == nil {
+		utils.LogWarning("boleta no encontrada", zap.String("id", id))
+		return nil, http.StatusNotFound, fmt.Errorf("boleta no encontrada")
+	}
+
+	// Verificar que la boleta pertenezca al emisor
+	if boleta.RUTEmisor != rutEmisor {
+		utils.LogWarning("intento de acceder a boleta de otro emisor",
+			zap.String("rut_token", rutEmisor),
+			zap.String("rut_boleta", boleta.RUTEmisor),
+		)
+		return nil, http.StatusForbidden, fmt.Errorf("no tiene permisos para acceder a esta boleta")
+	}
+
+	return boleta, http.StatusOK, nil
 }
 
 // CrearBoleta maneja la creación de una nueva boleta
@@ -266,31 +321,10 @@ func (c *BoletaController) AnularBoleta(ctx *gin.Context) {
 		return
 	}
 
-	// Verificar permisos
-	jwtUtils := utils.NewJWTUtils()
-	rutEmisor, _ := utils.GetRut(ctx.GetHeader("Authorization"), jwtUtils)
-
-	// Obtener boleta para verificar que pertenezca al emisor
-	boleta, err := c.boletaService.GetBoleta(id)
-	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "AnularBoleta"), zap.String("id", id))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if boleta == nil {
-		utils.LogWarning("boleta no encontrada", zap.String("id", id))
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Boleta no encontrada"})
-		return
-	}
-
-	// Verificar que la boleta pertenezca al emisor
-	if boleta.RutEmisor != rutEmisor {
-		utils.LogWarning("intento de anular boleta de otro emisor",
-			zap.String("rut_token", rutEmisor),
-			zap.String("rut_boleta", boleta.RutEmisor),
-		)
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "No tiene permisos para anular esta boleta"})
+	// Verificar permisos usando el método centralizado
+	// No necesitamos la boleta, solo verificar permisos
+	if _, status, err := c.verificarPermisoBoleta(ctx, id, "AnularBoleta"); err != nil {
+		ctx.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -334,31 +368,10 @@ func (c *BoletaController) ReenviarBoleta(ctx *gin.Context) {
 		return
 	}
 
-	// Verificar permisos
-	jwtUtils := utils.NewJWTUtils()
-	rutEmisor, _ := utils.GetRut(ctx.GetHeader("Authorization"), jwtUtils)
-
-	// Obtener boleta para verificar que pertenezca al emisor
-	boleta, err := c.boletaService.GetBoleta(id)
-	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "ReenviarBoleta"), zap.String("id", id))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if boleta == nil {
-		utils.LogWarning("boleta no encontrada", zap.String("id", id))
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Boleta no encontrada"})
-		return
-	}
-
-	// Verificar que la boleta pertenezca al emisor
-	if boleta.RutEmisor != rutEmisor {
-		utils.LogWarning("intento de reenviar boleta de otro emisor",
-			zap.String("rut_token", rutEmisor),
-			zap.String("rut_boleta", boleta.RutEmisor),
-		)
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "No tiene permisos para reenviar esta boleta"})
+	// Verificar permisos usando el método centralizado
+	// No necesitamos la boleta, solo verificar permisos
+	if _, status, err := c.verificarPermisoBoleta(ctx, id, "ReenviarBoleta"); err != nil {
+		ctx.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -401,7 +414,7 @@ func (c *BoletaController) DescargarPDF(ctx *gin.Context) {
 		return
 	}
 
-	// Obtener boleta
+	// Obtener boleta para verificar que exista
 	boleta, err := c.boletaService.GetBoleta(id)
 	if err != nil {
 		utils.LogError(err, zap.String("endpoint", "DescargarPDF"), zap.String("id", id))
@@ -475,17 +488,10 @@ func (c *BoletaController) EnviarPorEmail(ctx *gin.Context) {
 		return
 	}
 
-	// Obtener boleta
-	boleta, err := c.boletaService.GetBoleta(id)
+	// Verificar permisos usando el método centralizado
+	boleta, status, err := c.verificarPermisoBoleta(ctx, id, "EnviarPorEmail")
 	if err != nil {
-		utils.LogError(err, zap.String("endpoint", "EnviarPorEmail"), zap.String("id", id))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if boleta == nil {
-		utils.LogWarning("boleta no encontrada", zap.String("id", id))
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Boleta no encontrada"})
+		ctx.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 

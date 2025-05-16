@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // LogLevel define el nivel de log

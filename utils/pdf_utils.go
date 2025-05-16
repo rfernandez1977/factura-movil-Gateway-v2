@@ -9,7 +9,7 @@ import (
 	"image"
 	"io"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/skip2/go-qrcode"
 )

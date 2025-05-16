@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // SesionSIIClient representa un cliente para interactuar con el SII para sesiones

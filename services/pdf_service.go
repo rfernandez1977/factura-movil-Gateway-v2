@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/jung-kurt/gofpdf"
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // PDFService maneja la generación de PDFs

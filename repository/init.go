@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/supabase"
 )
 
 var (

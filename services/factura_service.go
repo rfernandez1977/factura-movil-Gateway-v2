@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // FacturaService maneja la lógica de negocio de facturas

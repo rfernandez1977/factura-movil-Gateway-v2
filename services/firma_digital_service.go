@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // XMLSignatureService proporciona métodos para firmar documentos XML digitalmente

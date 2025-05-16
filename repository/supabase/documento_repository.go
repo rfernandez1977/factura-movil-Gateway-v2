@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/supabase"
+	"github.com/fmgo/models"
+	"github.com/fmgo/supabase"
 )
 
 // DocumentoTributarioRepository define las operaciones de repositorio para documentos tributarios

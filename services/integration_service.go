@@ -2,22 +2,38 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/fmgo/models"
 	"github.com/go-redis/redis/v8"
-	"github.com/cursor/FMgo/models"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	// TTLWorkflow tiempo de vida del workflow en caché
+	TTLWorkflow = 24 * time.Hour
+	// TTLRegistro tiempo de vida del registro en caché
+	TTLRegistro = 1 * time.Hour
+	// TTLMetricas tiempo de vida de las métricas en caché
+	TTLMetricas = 12 * time.Hour
+	// PrefijoWorkflow prefijo para las claves de workflow
+	PrefijoWorkflow = "workflow:"
+	// PrefijoRegistro prefijo para las claves de registro
+	PrefijoRegistro = "registro:"
+	// PrefijoMetricas prefijo para las claves de métricas
+	PrefijoMetricas = "metricas:"
+)
+
 // IntegrationService maneja la lógica de integración con ERPs
 type IntegrationService struct {
 	db             *mongo.Database
-	cache          *CacheService
+	cache          *redis.Client
 	async          *AsyncService
 	queryOptimizer *QueryOptimizer
 	circuitBreaker *CircuitBreaker
@@ -28,12 +44,27 @@ type IntegrationService struct {
 func NewIntegrationService(db *mongo.Database, redisClient *redis.Client, queue *amqp.Channel) *IntegrationService {
 	return &IntegrationService{
 		db:             db,
-		cache:          NewCacheService(redisClient, 24*time.Hour),
+		cache:          redisClient,
 		async:          NewAsyncService(queue, 5),
 		queryOptimizer: NewQueryOptimizer(db),
 		circuitBreaker: NewCircuitBreaker(5, 30*time.Second),
 		eventSubject:   NewEventSubject(),
 	}
+}
+
+// getWorkflowCacheKey genera una clave de caché para workflow
+func (s *IntegrationService) getWorkflowCacheKey(erpID, entidad string) string {
+	return fmt.Sprintf("%s%s:%s", PrefijoWorkflow, erpID, entidad)
+}
+
+// getRegistroCacheKey genera una clave de caché para registro
+func (s *IntegrationService) getRegistroCacheKey(registroID string) string {
+	return fmt.Sprintf("%s%s", PrefijoRegistro, registroID)
+}
+
+// getMetricasCacheKey genera una clave de caché para métricas
+func (s *IntegrationService) getMetricasCacheKey(erpID string) string {
+	return fmt.Sprintf("%s%s", PrefijoMetricas, erpID)
 }
 
 // IniciarSincronizacion inicia un proceso de sincronización
@@ -49,26 +80,71 @@ func (s *IntegrationService) IniciarSincronizacion(ctx context.Context, erpID st
 		FechaActualizacion: time.Now(),
 	}
 
+	// Guardar en base de datos
 	_, err := s.db.Collection("registros_sincronizacion").InsertOne(ctx, registro)
 	if err != nil {
 		return nil, fmt.Errorf("error al crear registro de sincronización: %v", err)
 	}
 
+	// Guardar en caché
+	if err := s.guardarRegistroEnCache(ctx, registro); err != nil {
+		log.Printf("error guardando registro en caché: %v", err)
+	}
+
 	return registro, nil
+}
+
+// guardarRegistroEnCache guarda un registro en caché
+func (s *IntegrationService) guardarRegistroEnCache(ctx context.Context, registro *models.RegistroSincronizacion) error {
+	data, err := json.Marshal(registro)
+	if err != nil {
+		return fmt.Errorf("error serializando registro: %w", err)
+	}
+
+	key := s.getRegistroCacheKey(registro.ID)
+	return s.cache.Set(ctx, key, data, TTLRegistro).Err()
+}
+
+// obtenerRegistroDeCache obtiene un registro del caché
+func (s *IntegrationService) obtenerRegistroDeCache(ctx context.Context, registroID string) (*models.RegistroSincronizacion, error) {
+	key := s.getRegistroCacheKey(registroID)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	var registro models.RegistroSincronizacion
+	if err := json.Unmarshal(data, &registro); err != nil {
+		return nil, fmt.Errorf("error deserializando registro: %w", err)
+	}
+
+	return &registro, nil
 }
 
 // ProcesarSincronizacion procesa un registro de sincronización
 func (s *IntegrationService) ProcesarSincronizacion(ctx context.Context, registroID string) error {
-	// Obtener el registro
-	var registro models.RegistroSincronizacion
-	err := s.db.Collection("registros_sincronizacion").FindOne(ctx, bson.M{"_id": registroID}).Decode(&registro)
+	// Intentar obtener registro del caché
+	registro, err := s.obtenerRegistroDeCache(ctx, registroID)
 	if err != nil {
-		return fmt.Errorf("error al obtener registro: %v", err)
+		// Si no está en caché, obtener de base de datos
+		var registroTemp models.RegistroSincronizacion
+		err = s.db.Collection("registros_sincronizacion").FindOne(ctx, bson.M{"_id": registroID}).Decode(&registroTemp)
+		if err != nil {
+			return fmt.Errorf("error al obtener registro: %v", err)
+		}
+		registro = &registroTemp
+
+		// Guardar en caché para futuras consultas
+		if err := s.guardarRegistroEnCache(ctx, registro); err != nil {
+			log.Printf("error guardando registro en caché: %v", err)
+		}
 	}
 
 	// Actualizar estado
 	registro.Estado = models.EstadoEnProceso
 	registro.FechaActualizacion = time.Now()
+
+	// Actualizar en base de datos
 	_, err = s.db.Collection("registros_sincronizacion").UpdateOne(ctx,
 		bson.M{"_id": registroID},
 		bson.M{"$set": bson.M{
@@ -80,31 +156,52 @@ func (s *IntegrationService) ProcesarSincronizacion(ctx context.Context, registr
 		return fmt.Errorf("error al actualizar estado: %v", err)
 	}
 
-	// Obtener workflow correspondiente
+	// Actualizar en caché
+	if err := s.guardarRegistroEnCache(ctx, registro); err != nil {
+		log.Printf("error actualizando registro en caché: %v", err)
+	}
+
+	// Obtener workflow del caché
+	key := s.getWorkflowCacheKey(registro.ERPID, registro.Entidad)
 	var workflow models.Workflow
-	err = s.db.Collection("workflows").FindOne(ctx, bson.M{
-		"erp_id":  registro.ERPID,
-		"entidad": registro.Entidad,
-	}).Decode(&workflow)
-	if err != nil {
-		return fmt.Errorf("error al obtener workflow: %v", err)
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		if err := json.Unmarshal(data, &workflow); err == nil {
+			// Ejecutar workflow
+			if err := s.ejecutarWorkflow(ctx, &workflow, registro); err != nil {
+				s.manejarError(ctx, registro, err)
+			} else {
+				registro.Estado = models.EstadoCompletado
+			}
+		}
 	}
 
-	// Ejecutar workflow
-	err = s.ejecutarWorkflow(ctx, &workflow, &registro)
+	// Si no está en caché, obtener de base de datos
 	if err != nil {
-		// Registrar error
-		registro.Errores = append(registro.Errores, models.ErrorSincronizacion{
-			Codigo:    "WORKFLOW_ERROR",
-			Mensaje:   err.Error(),
-			Timestamp: time.Now(),
-		})
-		registro.Estado = models.EstadoError
-	} else {
-		registro.Estado = models.EstadoCompletado
+		err = s.db.Collection("workflows").FindOne(ctx, bson.M{
+			"erp_id":  registro.ERPID,
+			"entidad": registro.Entidad,
+		}).Decode(&workflow)
+		if err != nil {
+			return fmt.Errorf("error al obtener workflow: %v", err)
+		}
+
+		// Guardar workflow en caché
+		if data, err := json.Marshal(workflow); err == nil {
+			if err := s.cache.Set(ctx, key, data, TTLWorkflow).Err(); err != nil {
+				log.Printf("error guardando workflow en caché: %v", err)
+			}
+		}
+
+		// Ejecutar workflow
+		if err := s.ejecutarWorkflow(ctx, &workflow, registro); err != nil {
+			s.manejarError(ctx, registro, err)
+		} else {
+			registro.Estado = models.EstadoCompletado
+		}
 	}
 
-	// Actualizar registro
+	// Actualizar registro final
 	registro.FechaActualizacion = time.Now()
 	_, err = s.db.Collection("registros_sincronizacion").UpdateOne(ctx,
 		bson.M{"_id": registroID},
@@ -114,7 +211,22 @@ func (s *IntegrationService) ProcesarSincronizacion(ctx context.Context, registr
 		return fmt.Errorf("error al actualizar registro: %v", err)
 	}
 
+	// Actualizar caché final
+	if err := s.guardarRegistroEnCache(ctx, registro); err != nil {
+		log.Printf("error actualizando registro en caché: %v", err)
+	}
+
 	return nil
+}
+
+// manejarError maneja un error durante la ejecución del workflow
+func (s *IntegrationService) manejarError(ctx context.Context, registro *models.RegistroSincronizacion, err error) {
+	registro.Errores = append(registro.Errores, models.ErrorSincronizacion{
+		Codigo:    "WORKFLOW_ERROR",
+		Mensaje:   err.Error(),
+		Timestamp: time.Now(),
+	})
+	registro.Estado = models.EstadoError
 }
 
 // ejecutarWorkflow ejecuta un workflow paso a paso
@@ -129,6 +241,11 @@ func (s *IntegrationService) ejecutarWorkflow(ctx context.Context, workflow *mod
 		// Verificar condiciones de salida
 		if !s.verificarCondiciones(paso.CondicionesSalida, registro.DatosTransformados) {
 			return fmt.Errorf("no se cumplieron las condiciones de salida en el paso %s", paso.Nombre)
+		}
+
+		// Actualizar registro en caché después de cada paso
+		if err := s.guardarRegistroEnCache(ctx, registro); err != nil {
+			log.Printf("error actualizando registro en caché: %v", err)
 		}
 	}
 
@@ -234,9 +351,33 @@ func (s *IntegrationService) RegistrarMetrica(ctx context.Context, metrica *mode
 	metrica.ID = generateID()
 	metrica.Timestamp = time.Now()
 
+	// Guardar en base de datos
 	_, err := s.db.Collection("metricas_integracion").InsertOne(ctx, metrica)
 	if err != nil {
 		return fmt.Errorf("error al registrar métrica: %v", err)
+	}
+
+	// Actualizar métricas en caché
+	key := s.getMetricasCacheKey(metrica.ERPID)
+	var metricas []models.MetricaIntegracion
+	data, err := s.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		if err := json.Unmarshal(data, &metricas); err == nil {
+			metricas = append(metricas, *metrica)
+			if data, err := json.Marshal(metricas); err == nil {
+				if err := s.cache.Set(ctx, key, data, TTLMetricas).Err(); err != nil {
+					log.Printf("error actualizando métricas en caché: %v", err)
+				}
+			}
+		}
+	} else {
+		// Si no hay métricas en caché, crear nueva lista
+		metricas = []models.MetricaIntegracion{*metrica}
+		if data, err := json.Marshal(metricas); err == nil {
+			if err := s.cache.Set(ctx, key, data, TTLMetricas).Err(); err != nil {
+				log.Printf("error guardando métricas en caché: %v", err)
+			}
+		}
 	}
 
 	return nil
@@ -248,23 +389,55 @@ func (s *IntegrationService) RegistrarAlerta(ctx context.Context, alerta *models
 	alerta.FechaCreacion = time.Now()
 	alerta.FechaActualizacion = time.Now()
 
+	// Guardar en base de datos
 	_, err := s.db.Collection("alertas").InsertOne(ctx, alerta)
 	if err != nil {
 		return fmt.Errorf("error al registrar alerta: %v", err)
 	}
 
+	// Notificar a los observadores
+	s.eventSubject.Notify(ctx, "ALERTA", alerta)
+
 	return nil
 }
 
-// AgregarReintento agrega un elemento a la cola de reintentos
-func (s *IntegrationService) AgregarReintento(ctx context.Context, reintento *models.ColaReintentos) error {
-	reintento.ID = generateID()
-	reintento.FechaCreacion = time.Now()
-	reintento.FechaActualizacion = time.Now()
+// LimpiarCache limpia el caché del servicio
+func (s *IntegrationService) LimpiarCache(ctx context.Context) error {
+	var cursor uint64
+	var keys []string
 
-	_, err := s.db.Collection("cola_reintentos").InsertOne(ctx, reintento)
-	if err != nil {
-		return fmt.Errorf("error al agregar reintento: %v", err)
+	// Obtener todas las claves con los prefijos
+	for {
+		var result []string
+		var err error
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoWorkflow+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de workflow: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoRegistro+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de registro: %w", err)
+		}
+		keys = append(keys, result...)
+
+		result, cursor, err = s.cache.Scan(ctx, cursor, PrefijoMetricas+"*", 100).Result()
+		if err != nil {
+			return fmt.Errorf("error escaneando claves de métricas: %w", err)
+		}
+		keys = append(keys, result...)
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	// Eliminar todas las claves encontradas
+	if len(keys) > 0 {
+		if err := s.cache.Del(ctx, keys...).Err(); err != nil {
+			return fmt.Errorf("error eliminando claves del caché: %w", err)
+		}
 	}
 
 	return nil

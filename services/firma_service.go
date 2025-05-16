@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 )
 
 // FirmaDigitalService representa el servicio para manejar la firma digital

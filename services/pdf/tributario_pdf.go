@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 	"github.com/jung-kurt/gofpdf"
 )
 

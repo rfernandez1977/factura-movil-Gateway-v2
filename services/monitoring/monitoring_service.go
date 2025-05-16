@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // MonitoringService implementa el servicio de monitoreo

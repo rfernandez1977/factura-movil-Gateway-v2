@@ -1,74 +1,112 @@
 package validation
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
-// ValidateFecha valida una fecha en formato string
-func ValidateFecha(fecha string) error {
-	if fecha == "" {
-		return models.NewValidationFieldError("fecha", "REQUIRED_FIELD", "no puede estar vacía", nil)
+// ValidateEmail valida un correo electrónico
+func ValidateEmail(email string) error {
+	if email == "" {
+		return models.NewValidationFieldError("Email", "REQUIRED_FIELD", "no puede estar vacío", nil)
 	}
 
-	// Intentar parsear la fecha
-	_, err := time.Parse("2006-01-02", fecha)
-	if err != nil {
-		return models.NewValidationFieldError("fecha", "INVALID_FORMAT", "formato inválido (YYYY-MM-DD)", fecha)
+	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	if !re.MatchString(email) {
+		return models.NewValidationFieldError("Email", "INVALID_FORMAT", "formato inválido", email)
 	}
 
 	return nil
 }
 
-// ValidateMonto valida un monto
-func ValidateMonto(monto int) error {
-	if monto < 0 {
-		return models.NewValidationFieldError("monto", "INVALID_VALUE", "debe ser mayor o igual a 0", monto)
+// ValidateDate valida una fecha
+func ValidateDate(date time.Time, fieldName string) error {
+	if date.IsZero() {
+		return models.NewValidationFieldError(fieldName, "REQUIRED_FIELD", "no puede estar vacía", nil)
 	}
 	return nil
 }
 
-// ValidatePorcentaje valida un porcentaje
-func ValidatePorcentaje(porcentaje int) error {
-	if porcentaje < 0 || porcentaje > 100 {
-		return models.NewValidationFieldError("porcentaje", "INVALID_VALUE", "debe estar entre 0 y 100", porcentaje)
+// ValidateDateRange valida que una fecha esté dentro de un rango
+func ValidateDateRange(date, minDate, maxDate time.Time, fieldName string) error {
+	if err := ValidateDate(date, fieldName); err != nil {
+		return err
+	}
+
+	if date.Before(minDate) {
+		return models.NewValidationFieldError(fieldName,
+			"DATE_BEFORE_MIN",
+			fmt.Sprintf("no puede ser anterior a %s", minDate.Format("2006-01-02")),
+			date.Format("2006-01-02"))
+	}
+
+	if date.After(maxDate) {
+		return models.NewValidationFieldError(fieldName,
+			"DATE_AFTER_MAX",
+			fmt.Sprintf("no puede ser posterior a %s", maxDate.Format("2006-01-02")),
+			date.Format("2006-01-02"))
+	}
+
+	return nil
+}
+
+// ValidateText valida un texto
+func ValidateText(text string, minLength, maxLength int, fieldName string) error {
+	if text == "" {
+		return models.NewValidationFieldError(fieldName, "REQUIRED_FIELD", "no puede estar vacío", nil)
+	}
+
+	length := len(strings.TrimSpace(text))
+	if length < minLength {
+		return models.NewValidationFieldError(fieldName,
+			"TEXT_TOO_SHORT",
+			fmt.Sprintf("debe tener al menos %d caracteres", minLength),
+			text)
+	}
+	if length > maxLength {
+		return models.NewValidationFieldError(fieldName,
+			"TEXT_TOO_LONG",
+			fmt.Sprintf("no debe exceder %d caracteres", maxLength),
+			text)
+	}
+
+	return nil
+}
+
+// ValidateNumber valida un número
+func ValidateNumber(number int, min, max int, fieldName string) error {
+	if number < min {
+		return models.NewValidationFieldError(fieldName,
+			"NUMBER_BELOW_MIN",
+			fmt.Sprintf("debe ser mayor o igual a %d", min),
+			number)
+	}
+	if number > max {
+		return models.NewValidationFieldError(fieldName,
+			"NUMBER_ABOVE_MAX",
+			fmt.Sprintf("debe ser menor o igual a %d", max),
+			number)
 	}
 	return nil
 }
 
-// ValidateCantidad valida una cantidad
-func ValidateCantidad(cantidad float64) error {
-	if cantidad <= 0 {
-		return models.NewValidationFieldError("cantidad", "INVALID_VALUE", "debe ser mayor a 0", cantidad)
+// ValidateList valida una lista
+func ValidateList(list []string, minLength, maxLength int, fieldName string) error {
+	if len(list) < minLength {
+		return models.NewValidationFieldError(fieldName,
+			"LIST_TOO_SHORT",
+			fmt.Sprintf("debe tener al menos %d elementos", minLength),
+			list)
+	}
+	if len(list) > maxLength {
+		return models.NewValidationFieldError(fieldName,
+			"LIST_TOO_LONG",
+			fmt.Sprintf("no debe exceder %d elementos", maxLength),
+			list)
 	}
 	return nil
-}
-
-// ValidatePrecio valida un precio
-func ValidatePrecio(precio int) error {
-	if precio < 0 {
-		return models.NewValidationFieldError("precio", "INVALID_VALUE", "debe ser mayor o igual a 0", precio)
-	}
-	return nil
-}
-
-// ValidateTexto valida un texto con longitud específica
-func ValidateTexto(texto string, minLength, maxLength int) error {
-	return ValidateText(texto, minLength, maxLength, "texto")
-}
-
-// ValidateNumero valida un número dentro de un rango
-func ValidateNumero(numero int, min, max int) error {
-	return ValidateNumber(numero, min, max, "numero")
-}
-
-// ValidateLista valida una lista con longitud específica
-func ValidateLista(lista []string, minLength, maxLength int) error {
-	return ValidateList(lista, minLength, maxLength, "lista")
-}
-
-// esBisiesto determina si un año es bisiesto
-func esBisiesto(anio int) bool {
-	return anio%4 == 0 && (anio%100 != 0 || anio%400 == 0)
 }

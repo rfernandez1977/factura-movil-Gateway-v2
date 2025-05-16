@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cursor/FMgo/config"
-	"github.com/cursor/FMgo/models"
-	"github.com/cursor/FMgo/utils/sii"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
+	"github.com/fmgo/utils/sii"
 )
 
 // SIIService es un alias para la interfaz sii.SIIService

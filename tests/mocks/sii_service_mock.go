@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cursor/FMgo/sii"
+	"github.com/fmgo/sii"
 	"github.com/stretchr/testify/mock"
 )
 

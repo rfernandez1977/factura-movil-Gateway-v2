@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // ConnectorFactory crea instancias de conectores ERP

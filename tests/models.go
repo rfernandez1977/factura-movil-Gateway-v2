@@ -3,7 +3,7 @@ package tests
 import (
 	"time"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // ConfigEmpresa contiene la configuración de la empresa para las pruebas

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/cursor/FMgo/api"
+	"github.com/fmgo/api"
 
 	"github.com/gin-gonic/gin"
-	"github.com/cursor/FMgo/utils"
+	"github.com/fmgo/utils"
 )
 
 type RutHandlers struct {

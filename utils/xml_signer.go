@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/cursor/FMgo/models"
+	"github.com/fmgo/models"
 )
 
 // FirmadorXML representa un firmador de documentos XML

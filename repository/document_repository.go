@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/cursor/FMgo/domain"
+	"github.com/fmgo/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
