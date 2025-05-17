@@ -211,7 +211,7 @@ func (s *SesionService) VerificarToken(token string) (bool, error) {
 
 	// Configurar headers
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "FMgo/1.0")
+	req.Header.Set("User-Agent", "github.com/fmgo/1.0")
 
 	// Enviar request usando el cliente HTTP
 	httpClient := &http.Client{

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"FMgo/core/sii/logger"
+	"github.com/fmgo/core/sii/logger"
 	"context"
 	"fmt"
 	"time"

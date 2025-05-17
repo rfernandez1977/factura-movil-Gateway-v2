@@ -8,6 +8,7 @@ Sistema de integración con el Servicio de Impuestos Internos (SII) de Chile par
 - Sistema de firma digital avanzado con soporte XML-DSIG
 - Envío automático al SII con reintentos y manejo de errores
 - Gestión completa de DTE (Documentos Tributarios Electrónicos)
+- Validación básica de CAF (Código de Autorización de Folios)
 - Sistema de monitoreo y logging multinivel
 - Caché de certificados digitales con rotación automática
 - Validación de firmas y certificados
@@ -65,6 +66,25 @@ make build
 
 ### Ejemplos de Uso
 
+#### Validador CAF
+```go
+// Crear validador CAF
+validator, err := caf.NewValidator(cafXMLData)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Validar folio
+if err := validator.ValidarFolio(123); err != nil {
+    log.Printf("Folio inválido: %v", err)
+}
+
+// Marcar folio como usado
+if err := validator.MarcarFolioUsado(123); err != nil {
+    log.Printf("Error marcando folio: %v", err)
+}
+```
+
 #### Sistema de Firma Digital
 ```go
 // Crear servicio de firma
@@ -80,23 +100,6 @@ signedXML, err := firmaService.FirmarXML(xmlData)
 
 // Validar firma
 isValid, err := firmaService.ValidarFirma(signedXML)
-```
-
-#### Sistema de Logging
-```go
-// Inicializar logger con rotación
-logger, err := logger.NewLogger("logs/app.log", logger.DEBUG)
-defer logger.Close()
-
-// Logging estructurado
-logger.Info("Proceso iniciado", map[string]interface{}{
-    "modulo": "firma",
-    "operacion": "validacion",
-    "documento_id": "DOC001"
-})
-
-// Logging de operaciones XML
-logger.LogXMLOperation("FirmarXML", xmlData, err)
 ```
 
 ## Estructura del Proyecto
@@ -126,6 +129,18 @@ logger.LogXMLOperation("FirmarXML", xmlData, err)
 - Uptime: > 99.9%
 - Monitoreo en tiempo real vía Prometheus/Grafana
 - Alertas configurables por nivel de severidad
+
+## Estado del MVP
+
+- [x] Validación básica de CAF
+  - [x] Validación de RUT emisor
+  - [x] Validación de tipo DTE
+  - [x] Control de folios
+  - [x] Validación de fechas
+  - [ ] Verificación de firmas (post-MVP)
+  - [ ] Persistencia de folios (post-MVP)
+
+Para más detalles sobre el estado del MVP, consulte [docs/mvp/README.md](docs/mvp/README.md).
 
 ## Contribución
 

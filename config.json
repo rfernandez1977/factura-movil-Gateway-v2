@@ -24,15 +24,21 @@
         "port": 8080,
         "host": "localhost",
         "readTimeout": 30,
-        "writeTimeout": 30
+        "writeTimeout": 30,
+        "timeout": {
+            "read": 5,
+            "write": 5,
+            "idle": 60
+        }
     },
     "database": {
-        "host": "aws-0-us-west-1.pooler.supabase.com",
-        "port": 6543,
-        "user": "postgres.hptxgcuajsdupooptsax",
-        "password": "rTFJE9FdUiJg2emR",
-        "name": "postgres",
-        "sslMode": "require"
+        "host": "localhost",
+        "port": 5432,
+        "name": "fmgo",
+        "user": "postgres",
+        "password": "",
+        "ssl_mode": "disable",
+        "max_connections": 10
     },
     "sii": {
         "baseUrl": "https://maullin.sii.cl/DTEWS/",
@@ -41,23 +47,23 @@
         "retryDelay": 5,
         "certPath": "cert/cert.p12",
         "keyPath": "cert/key.pem",
-        "certPassword": ""
+        "certPassword": "",
+        "url": "https://palena.sii.cl",
+        "max_retries": 3
     },
     "logging": {
-        "level": "info",
-        "filePath": "logs/fmgo.log",
-        "maxSize": 10,
-        "maxBackups": 5,
-        "maxAge": 30,
-        "compress": true
+        "level": "debug",
+        "format": "json",
+        "output": "stdout"
     },
     "security": {
-        "jwtSecret": "default-secret-key-change-in-production",
-        "jwtExpiration": 24,
+        "jwtSecret": "your-secret-key",
+        "jwtExpiration": "24h",
         "corsEnabled": true,
         "corsOrigins": [
             "*"
-        ]
+        ],
+        "bcrypt_cost": 10
     },
     "supabase": {
         "url": "https://hptxgcuajsdupooptsax.supabase.co",
@@ -69,5 +75,27 @@
         "tablaDocumentos": "documentos",
         "tablaEmpresas": "empresas",
         "tablaUsuarios": "usuarios"
+    },
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "password": "",
+        "db": 0,
+        "max_retries": 3,
+        "min_retry_backoff": "100ms",
+        "max_retry_backoff": "2s",
+        "dial_timeout": "5s",
+        "read_timeout": "3s",
+        "write_timeout": "3s",
+        "pool_size": 10,
+        "min_idle_conns": 2,
+        "max_conn_age": "1h",
+        "pool_timeout": "4s",
+        "idle_timeout": "5m"
+    },
+    "monitoring": {
+        "enabled": true,
+        "metrics_path": "/metrics",
+        "prometheus_port": 9090
     }
 }

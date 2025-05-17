@@ -1,11 +1,14 @@
-package main
+package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 // Definición de modelos para el test
@@ -89,6 +92,132 @@ type SupabaseConfig struct {
 type SupabaseClient struct {
 	Config SupabaseConfig
 	Client *http.Client
+}
+
+// DTEFlowTestSuite contiene las pruebas de integración para el flujo completo de DTE
+type DTEFlowTestSuite struct {
+	suite.Suite
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (s *DTEFlowTestSuite) SetupSuite() {
+	s.ctx, s.cancel = context.WithTimeout(context.Background(), 5*time.Minute)
+}
+
+func (s *DTEFlowTestSuite) TearDownSuite() {
+	s.cancel()
+}
+
+func (s *DTEFlowTestSuite) TestFacturaElectronicaFlow() {
+	// Test de flujo completo de factura electrónica
+	s.Run("Emisión de Factura Electrónica", func() {
+		// 1. Preparar datos de prueba
+		factura := &DTEInput{
+			TipoDocumento: "33",
+			Emisor: Emisor{
+				RUT:         "76212889-9",
+				RazonSocial: "EMPRESA DE PRUEBA",
+				Giro:        "SERVICIOS INFORMATICOS",
+				Direccion:   "CALLE DE PRUEBA 123",
+			},
+			Receptor: Receptor{
+				RUT:         "66666666-6",
+				RazonSocial: "CLIENTE DE PRUEBA",
+				Giro:        "COMERCIO",
+				Direccion:   "CALLE CLIENTE 456",
+			},
+			Detalles: []Detalle{
+				{
+					Cantidad:       1,
+					Descripcion:    "Servicio de Desarrollo",
+					PrecioUnitario: 100000,
+					MontoTotal:     100000,
+				},
+			},
+			Totales: Totales{
+				MontoNeto:  100000,
+				TasaIVA:    19,
+				MontoIVA:   19000,
+				MontoTotal: 119000,
+			},
+		}
+
+		// 2. Validar CAF
+		caf, err := s.validarCAF(factura.TipoDocumento)
+		s.Require().NoError(err, "Debe obtener un CAF válido")
+		s.Require().NotNil(caf, "CAF no debe ser nil")
+
+		// 3. Generar XML
+		xml, err := s.generarXML(factura)
+		s.Require().NoError(err, "Debe generar XML válido")
+		s.Require().NotEmpty(xml, "XML no debe estar vacío")
+
+		// 4. Firmar documento
+		xmlFirmado, err := s.firmarDocumento(xml)
+		s.Require().NoError(err, "Debe firmar el documento")
+		s.Require().NotEmpty(xmlFirmado, "XML firmado no debe estar vacío")
+
+		// 5. Enviar al SII
+		trackID, err := s.enviarSII(xmlFirmado)
+		s.Require().NoError(err, "Debe enviar al SII")
+		s.Require().NotEmpty(trackID, "Debe obtener trackID")
+
+		// 6. Verificar estado
+		estado, err := s.verificarEstado(trackID)
+		s.Require().NoError(err, "Debe verificar estado")
+		s.Require().Equal("ACEPTADO", estado, "Documento debe ser aceptado")
+
+		// 7. Almacenar en caché
+		err = s.almacenarCache(factura.TipoDocumento, trackID, xmlFirmado)
+		s.Require().NoError(err, "Debe almacenar en caché")
+	})
+}
+
+func (s *DTEFlowTestSuite) TestBoletaElectronicaFlow() {
+	// Similar al test de factura pero para boleta
+	s.T().Skip("Implementar test de boleta electrónica")
+}
+
+func (s *DTEFlowTestSuite) TestNotaCreditoFlow() {
+	// Similar al test de factura pero para nota de crédito
+	s.T().Skip("Implementar test de nota de crédito")
+}
+
+// Métodos auxiliares
+
+func (s *DTEFlowTestSuite) validarCAF(tipoDocumento string) (*CAF, error) {
+	// Implementar validación de CAF
+	return nil, nil
+}
+
+func (s *DTEFlowTestSuite) generarXML(dte *DTEInput) (string, error) {
+	// Implementar generación de XML
+	return "", nil
+}
+
+func (s *DTEFlowTestSuite) firmarDocumento(xml string) (string, error) {
+	// Implementar firma de documento
+	return "", nil
+}
+
+func (s *DTEFlowTestSuite) enviarSII(xmlFirmado string) (string, error) {
+	// Implementar envío al SII
+	return "", nil
+}
+
+func (s *DTEFlowTestSuite) verificarEstado(trackID string) (string, error) {
+	// Implementar verificación de estado
+	return "", nil
+}
+
+func (s *DTEFlowTestSuite) almacenarCache(tipoDocumento, trackID, xmlFirmado string) error {
+	// Implementar almacenamiento en caché
+	return nil
+}
+
+func TestDTEFlowSuite(t *testing.T) {
+	suite.Run(t, new(DTEFlowTestSuite))
 }
 
 // TestDTEFlow prueba el flujo completo de creación de XML, firmado y envío al SII

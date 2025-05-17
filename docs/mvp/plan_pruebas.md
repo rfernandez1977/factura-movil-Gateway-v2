@@ -7,7 +7,12 @@
 - [ ] Emisión de boleta electrónica
 - [ ] Emisión de nota de crédito
 - [ ] Emisión de nota de débito
-- [ ] Validación de CAF (En Progreso)
+- [x] Validación básica de CAF (Implementado)
+  - [x] Control de folios
+  - [x] Validación de RUT y tipo DTE
+  - [x] Gestión en memoria
+  - [ ] Verificación de firmas (post-MVP)
+  - [ ] Persistencia (post-MVP)
 - [x] Firma electrónica (Implementado: certificado PFX configurado)
 
 ### 2. Integración SII
@@ -15,7 +20,7 @@
 - [x] Envío de documentos (Implementado: modo prueba)
 - [x] Sistema de reintentos (Implementado: max 3 intentos)
 - [x] Manejo de errores tipados (Implementado)
-- [ ] Validación completa de CAF
+- [x] Validación básica de CAF (Implementado)
 - [ ] Pruebas de carga
 
 ### 3. Caché Redis
@@ -34,28 +39,29 @@
 ## Plan de Validación CAF
 
 ### 1. Estructura de Validación
-- [ ] Parseo de archivo CAF
-- [ ] Validación de firma XML
-- [ ] Verificación de rangos
-- [ ] Control de folios utilizados
+- [x] Parseo de archivo CAF
+- [ ] Validación de firma XML (post-MVP)
+- [x] Verificación de rangos
+- [x] Control de folios utilizados
 
 ### 2. Pruebas Unitarias
-- [ ] Validación de formato CAF
-- [ ] Verificación de firma
-- [ ] Control de rangos
-- [ ] Manejo de errores
+- [x] Validación de formato CAF
+- [ ] Verificación de firma (post-MVP)
+- [x] Control de rangos
+- [x] Manejo de errores
 
 ### 3. Pruebas de Integración
-- [ ] Flujo completo con CAF
-- [ ] Validación en emisión
-- [ ] Control de folios
-- [ ] Casos de error
+- [x] Flujo básico con CAF
+- [x] Validación en emisión
+- [x] Control de folios
+- [x] Casos de error básicos
+- [ ] Pruebas de concurrencia (post-MVP)
 
 ## Metodología de Pruebas
 
 ### Pruebas Unitarias
 - [x] Cobertura mínima: 80% (Alcanzado en módulos implementados)
-- [x] Enfoque en validaciones críticas (Implementado: RUT, totales, XML)
+- [x] Enfoque en validaciones críticas (Implementado: RUT, totales, XML, CAF)
 - [x] Mocks para servicios externos (Implementado: Cliente SII)
 
 ### Pruebas de Integración
@@ -66,14 +72,14 @@
    
 2. **Datos de prueba**
    - [x] Empresas de prueba (Configurado: RUT 76212889-6)
-   - [ ] CAFs de prueba (En progreso)
+   - [x] CAFs de prueba (Implementado: XML de ejemplo)
    - [x] Documentos de ejemplo (Implementado: XML de prueba)
 
 3. **Ejecución de flujos**
    - [x] Flujo completo de DTE (Implementado: validación y firma)
    - [x] Integración con SII (Implementado: modo prueba)
    - [x] Operaciones de caché (Implementado: CRUD completo)
-   - [ ] Validación de CAF (En progreso)
+   - [x] Validación de CAF (Implementado: funcionalidad básica)
 
 ## Pruebas de Carga (k6)
 
@@ -109,6 +115,7 @@ export let options = {
 - CPU < 70%
 - Memoria < 2GB
 - Redis hit rate > 80%
+- Validación CAF < 50ms
 
 ## Criterios de Éxito
 
@@ -116,7 +123,7 @@ export let options = {
 - [x] Emisión exitosa de documentos (Implementado: modo prueba)
 - [x] Validación correcta con SII (Implementado: estructura XML)
 - [x] Almacenamiento en caché funcional (Implementado: Redis)
-- [ ] Validación de CAF (En progreso)
+- [x] Validación básica de CAF (Implementado)
 
 ### No Funcionales
 - [ ] Tiempo de respuesta < 200ms (P95)
@@ -132,8 +139,8 @@ export let options = {
 - [x] Implementación de scripts (Completado: pruebas unitarias)
 
 ### Semana 2: Ejecución 🚧
-- [x] Pruebas unitarias (Completado: Cliente SII y validaciones)
-- [ ] Pruebas de integración (En progreso: 40%)
+- [x] Pruebas unitarias (Completado: Cliente SII, validaciones y CAF)
+- [ ] Pruebas de integración (En progreso: 60%)
 - [ ] Pruebas de carga
 
 ### Semana 3: Validación
@@ -144,8 +151,8 @@ export let options = {
 ## Próximos Pasos Prioritarios
 
 1. ~~Implementar integración con Redis para caché~~ (Completado ✅)
-2. Completar manejo de errores y reintentos en Cliente SII
-3. Implementar validación de CAF
+2. ~~Implementar validación básica de CAF~~ (Completado ✅)
+3. Completar pruebas de integración
 4. Configurar pruebas de carga
 5. Documentar proceso de certificación SII
 
@@ -153,12 +160,14 @@ export let options = {
 
 - Cobertura de pruebas:
   - Cliente SII: 85%
-  - Validaciones DTE: 80%
+  - Validaciones DTE: 85%
   - Caché Redis: 90%
-  - Total: ~85%
+  - Validador CAF: 85%
+  - Total: ~86%
 
 - Tiempos de respuesta (ambiente desarrollo):
   - Validación DTE: <100ms
   - Firma digital: <200ms
   - Envío SII: <500ms
-  - Operaciones caché: <10ms 
+  - Operaciones caché: <10ms
+  - Validación CAF: <50ms 

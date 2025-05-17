@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"FMgo/core/sii/logger"
+	"github.com/fmgo/core/sii/logger"
 
 	"software.sslmate.com/src/go-pkcs12"
 )

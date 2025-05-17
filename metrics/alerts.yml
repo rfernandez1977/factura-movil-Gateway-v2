@@ -1,0 +1,92 @@
+groups:
+  - name: fmgo_alerts
+    rules:
+      # Alerta de latencia alta
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(fmgo_api_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latencia en las peticiones API"
+          description: "El 95% de las peticiones están tomando más de 500ms"
+
+      # Alerta de tasa de errores
+      - alert: HighErrorRate
+        expr: sum(rate(fmgo_api_requests_total{status="500"}[5m])) / sum(rate(fmgo_api_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alta tasa de errores en la API"
+          description: "Más del 5% de las peticiones están resultando en error 500"
+
+      # Alerta de uso de memoria
+      - alert: HighMemoryUsage
+        expr: fmgo_memory_bytes > 1e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alto uso de memoria"
+          description: "El uso de memoria ha superado 1GB"
+
+      # Alerta de fallos en caché
+      - alert: HighCacheMissRate
+        expr: rate(fmgo_cache_misses_total[5m]) / (rate(fmgo_cache_hits_total[5m]) + rate(fmgo_cache_misses_total[5m])) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de fallos en caché"
+          description: "Más del 30% de las peticiones a caché están resultando en fallos"
+
+      # Alerta de errores en SII
+      - alert: HighSIIErrorRate
+        expr: sum(rate(fmgo_sii_requests_total{status="error"}[5m])) / sum(rate(fmgo_sii_requests_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alta tasa de errores en peticiones al SII"
+          description: "Más del 10% de las peticiones al SII están fallando"
+
+      # Alerta de latencia alta en Redis
+      - alert: HighRedisLatency
+        expr: histogram_quantile(0.95, rate(fmgo_redis_operation_latency_seconds_bucket[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latencia en operaciones Redis"
+          description: "El 95% de las operaciones Redis están tomando más de 50ms"
+
+      # Alerta de uso de memoria en Redis
+      - alert: HighRedisMemoryUsage
+        expr: fmgo_redis_memory_bytes > 5e8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alto uso de memoria en Redis"
+          description: "El uso de memoria en Redis ha superado 500MB"
+
+      # Alerta de tasa de desalojo de claves en Redis
+      - alert: HighRedisEvictionRate
+        expr: rate(fmgo_redis_evicted_keys_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de desalojo de claves en Redis"
+          description: "Redis está desalojando más de 10 claves por segundo"
+
+      # Alerta de tasa de fallos en Redis
+      - alert: HighRedisKeyspaceMissRate
+        expr: rate(fmgo_redis_keyspace_misses_total[5m]) / (rate(fmgo_redis_keyspace_hits_total[5m]) + rate(fmgo_redis_keyspace_misses_total[5m])) > 0.4
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de fallos en Redis"
+          description: "Más del 40% de las búsquedas en Redis están resultando en fallos" 

@@ -1,4 +1,4 @@
-package dte
+package integration
 
 import (
 	"testing"

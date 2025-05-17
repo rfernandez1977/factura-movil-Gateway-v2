@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"FMgo/core/sii/logger"
+	"github.com/fmgo/core/sii/logger"
 )
 
 // XMLProcessor proporciona funcionalidades para procesar documentos XML

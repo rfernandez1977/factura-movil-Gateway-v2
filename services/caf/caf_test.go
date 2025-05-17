@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"FMgo/config"
-	"FMgo/models"
+	"github.com/fmgo/config"
+	"github.com/fmgo/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

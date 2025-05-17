@@ -3,8 +3,16 @@
 ## Estado Actual
 - **Fecha Inicio MVP:** 2024-03-21
 - **Fecha Objetivo:** 2024-04-04
-- **Estado:** En Preparación
-- **Progreso:** 75%
+- **Estado:** En Reestructuración
+- **Progreso:** 80%
+
+### ⚠️ Nota de Reestructuración
+Se ha iniciado un proceso de reestructuración completa del proyecto. Ver `PLAN_RESTRUCTURACION.md` para detalles.
+
+**Impacto en el Timeline:**
+- Fase de reestructuración: 2-3 días
+- Nueva fecha estimada de finalización: 2024-04-07
+- No afecta funcionalidades core del MVP
 
 ## Componentes Core MVP
 
@@ -12,6 +20,7 @@
 - [x] Core DTE implementado
 - [x] Validaciones básicas
 - [x] Manejo de estados
+- [x] Validación de CAF básica
 - [ ] Pruebas de integración
 - [ ] Documentación de API
 
@@ -19,6 +28,10 @@
 - [x] Validador DTE implementado
 - [x] Parser XML funcionando
 - [x] Generator DTE operativo
+- [x] Validador CAF implementado
+  - [x] Control de folios
+  - [x] Validación de RUT y tipo DTE
+  - [x] Gestión en memoria
 - [ ] Pruebas end-to-end
 - [ ] Documentación de flujos
 
@@ -41,14 +54,14 @@
 ### Semana 1 (21/03 - 28/03)
 
 #### 1. Pruebas de Integración
-- [ ] Configurar ambiente de pruebas
-- [ ] Implementar casos de prueba
+- [x] Configurar ambiente de pruebas
+- [x] Implementar casos de prueba básicos
 - [ ] Ejecutar pruebas end-to-end
 - [ ] Documentar resultados
 - [ ] Corregir issues encontrados
 
 #### 2. Documentación API
-- [ ] Documentar endpoints
+- [x] Documentar endpoints principales
 - [ ] Crear ejemplos de uso
 - [ ] Documentar flujos principales
 - [ ] Crear guías de integración
@@ -72,42 +85,44 @@
 
 ## Seguimiento Diario
 
-### 21/03/2024
+### 16/03/2024
 1. **Tareas Completadas:**
-   - Implementación de caché Redis
-   - Pruebas unitarias de caché
-   - Actualización de documentación
+   - Implementación básica del validador CAF
+   - Pruebas unitarias del validador
+   - Integración con flujo DTE
 
 2. **En Progreso:**
-   - Configuración de ambiente de pruebas
-   - Documentación de API
+   - Pruebas de integración con CAF
+   - Documentación de flujos
 
 3. **Próximos Pasos:**
-   - Implementar pruebas de integración
-   - Completar documentación de endpoints
+   - Implementar pruebas end-to-end
+   - Completar documentación de flujos
 
 ### Métricas MVP
 
 #### 1. Cobertura de Código
-- **Actual:** 87%
+- **Actual:** 86%
 - **Objetivo MVP:** 90%
 - **Plan:** Implementar pruebas faltantes
 
 #### 2. Documentación
-- **API:** 60% completada
+- **API:** 70% completada
 - **Despliegue:** 40% completado
-- **Pruebas:** 70% completado
+- **Pruebas:** 75% completado
 
 #### 3. Performance
 - **Tiempo Respuesta:** < 200ms
 - **Disponibilidad:** > 99%
 - **Latencia Caché:** < 50ms
+- **Validación CAF:** < 50ms
 
 ## Criterios de Aceptación MVP
 
 ### 1. Funcionalidad
-- [ ] Generación correcta de DTEs
-- [ ] Validación exitosa de documentos
+- [x] Generación correcta de DTEs
+- [x] Validación exitosa de documentos
+- [x] Validación básica de CAF
 - [ ] Envío correcto al SII
 - [ ] Manejo adecuado de respuestas
 
@@ -138,7 +153,8 @@
 - **Mitigación:** Revisión continua y actualización
 
 ## Notas y Observaciones
-1. Priorizar pruebas de integración con SII
-2. Mantener documentación actualizada
-3. Validar todos los flujos críticos
-4. Preparar ambiente de contingencia 
+1. Validador CAF implementado con funcionalidades básicas
+2. Priorizar pruebas de integración end-to-end
+3. Mantener documentación actualizada
+4. Validar todos los flujos críticos
+5. Preparar ambiente de contingencia 

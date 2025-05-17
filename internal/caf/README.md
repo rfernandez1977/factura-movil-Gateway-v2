@@ -1,10 +1,12 @@
 # Validador CAF
 
-Este paquete implementa la validación de Códigos de Autorización de Folios (CAF) para el sistema de facturación electrónica.
+Este paquete implementa la validación de Códigos de Autorización de Folios (CAF) como parte del sistema de facturación electrónica FMgo.
 
-## Características MVP
+## Componente del MVP
 
-### Validaciones Básicas
+El validador CAF es uno de los componentes del MVP de FMgo, encargado específicamente de la gestión y validación de folios autorizados. Para una visión completa del MVP, consulte la [documentación general del MVP](../../docs/mvp/README.md).
+
+### Validaciones Implementadas
 - Validación de RUT emisor
 - Validación de tipo DTE
 - Control de rango de folios
@@ -72,6 +74,13 @@ fmt.Printf("Rango de folios: %d-%d\n", estado.RangoDesde, estado.RangoHasta)
 - `ErrRUTNoCoincide`: RUT no coincide
 - `ErrTipoDTEInvalido`: Tipo de DTE incorrecto
 - `ErrFolioUsado`: Folio ya utilizado
+
+## Integración con el Sistema
+Este validador se integra con otros componentes del MVP:
+- Sistema de emisión de DTE
+- Servicio de integración SII
+- Sistema de caché Redis
+- API REST del sistema
 
 ## Próximas Características
 - Verificación de firmas XML

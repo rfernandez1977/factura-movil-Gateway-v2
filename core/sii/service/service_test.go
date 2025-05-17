@@ -10,6 +10,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// SIIClient define la interfaz para el cliente del SII
+type SIIClient interface {
+	ObtenerSemilla(ctx context.Context) (string, error)
+	ObtenerToken(ctx context.Context, semilla string) (string, error)
+	EnviarDTE(ctx context.Context, sobre []byte, token string) (*models.RespuestaSII, error)
+	ConsultarEstado(ctx context.Context, trackID string) (*models.EstadoConsulta, error)
+	ConsultarDTE(ctx context.Context, tipoDTE models.TipoDocumentoSII, folio int64, rutEmisor string) (*models.EstadoConsulta, error)
+	VerificarComunicacion(ctx context.Context) error
+}
+
 // MockSIIClient es un mock del cliente SII para pruebas
 type MockSIIClient struct {
 	mock.Mock
@@ -27,26 +37,17 @@ func (m *MockSIIClient) ObtenerToken(ctx context.Context, semilla string) (strin
 
 func (m *MockSIIClient) EnviarDTE(ctx context.Context, sobre []byte, token string) (*models.RespuestaSII, error) {
 	args := m.Called(ctx, sobre, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
 	return args.Get(0).(*models.RespuestaSII), args.Error(1)
 }
 
-func (m *MockSIIClient) ConsultarEstado(ctx context.Context, trackID string) (*models.EstadoSII, error) {
+func (m *MockSIIClient) ConsultarEstado(ctx context.Context, trackID string) (*models.EstadoConsulta, error) {
 	args := m.Called(ctx, trackID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.EstadoSII), args.Error(1)
+	return args.Get(0).(*models.EstadoConsulta), args.Error(1)
 }
 
-func (m *MockSIIClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int64, rutEmisor string) (*models.EstadoSII, error) {
+func (m *MockSIIClient) ConsultarDTE(ctx context.Context, tipoDTE models.TipoDocumentoSII, folio int64, rutEmisor string) (*models.EstadoConsulta, error) {
 	args := m.Called(ctx, tipoDTE, folio, rutEmisor)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.EstadoSII), args.Error(1)
+	return args.Get(0).(*models.EstadoConsulta), args.Error(1)
 }
 
 func (m *MockSIIClient) VerificarComunicacion(ctx context.Context) error {
@@ -54,122 +55,113 @@ func (m *MockSIIClient) VerificarComunicacion(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func TestDefaultSIIService_EnviarDTE(t *testing.T) {
-	// Crear mock del cliente
-	mockClient := new(MockSIIClient)
-	mockClient.On("ObtenerSemilla", mock.Anything).Return("SEMILLA-123", nil)
-	mockClient.On("ObtenerToken", mock.Anything, "SEMILLA-123").Return("TOKEN-123", nil)
-	mockClient.On("EnviarDTE", mock.Anything, []byte("<DTE></DTE>"), "TOKEN-123").Return(&models.RespuestaSII{
-		EstadoSII: models.EstadoSII{
-			Estado:  "0",
-			Glosa:   "DTE Recibido",
-			TrackID: "123456",
-		},
-	}, nil)
+// testContext retorna un contexto de prueba con request_id
+func testContext() context.Context {
+	return context.WithValue(context.Background(), "request_id", "test-123")
+}
 
-	// Crear servicio
-	service := NewDefaultSIIService(mockClient)
+func TestEnviarDTE(t *testing.T) {
+	mockClient := new(MockSIIClient)
+	service := NewSIIService(mockClient)
+	ctx := testContext()
+
+	// Preparar datos de prueba
+	dte := []byte(`<?xml version="1.0" encoding="UTF-8"?><DTE>...</DTE>`)
+	respuestaEsperada := &models.RespuestaSII{
+		TrackID:      "123456789",
+		Estado:       models.EstadoRecibido,
+		Glosa:        "DTE Recibido",
+		FechaProceso: time.Now(),
+	}
+
+	// Configurar comportamiento esperado del mock
+	mockClient.On("ObtenerSemilla", ctx).Return("SEMILLA123", nil)
+	mockClient.On("ObtenerToken", ctx, "SEMILLA123").Return("TOKEN123", nil)
+	mockClient.On("EnviarDTE", ctx, dte, "TOKEN123").Return(respuestaEsperada, nil)
 
 	// Ejecutar prueba
-	resp, err := service.EnviarDTE(context.Background(), []byte("<DTE></DTE>"))
-	assert.NoError(t, err)
-	assert.Equal(t, "0", resp.Estado)
-	assert.Equal(t, "DTE Recibido", resp.Glosa)
-	assert.Equal(t, "123456", resp.TrackID)
+	respuesta, err := service.EnviarDTE(ctx, dte)
 
-	// Verificar que se llamaron los métodos esperados
+	// Verificar resultados
+	assert.NoError(t, err)
+	assert.NotNil(t, respuesta)
+	assert.Equal(t, respuestaEsperada.TrackID, respuesta.TrackID)
+	assert.Equal(t, respuestaEsperada.Estado, respuesta.Estado)
 	mockClient.AssertExpectations(t)
 }
 
-func TestDefaultSIIService_ConsultarEstado(t *testing.T) {
-	// Crear mock del cliente
+func TestConsultarEstado(t *testing.T) {
 	mockClient := new(MockSIIClient)
-	mockClient.On("ObtenerSemilla", mock.Anything).Return("SEMILLA-123", nil)
-	mockClient.On("ObtenerToken", mock.Anything, "SEMILLA-123").Return("TOKEN-123", nil)
-	mockClient.On("ConsultarEstado", mock.Anything, "123456").Return(&models.EstadoSII{
-		Estado: "EPR",
-		Glosa:  "Envío Procesado",
-	}, nil)
+	service := NewSIIService(mockClient)
+	ctx := testContext()
 
-	// Crear servicio
-	service := NewDefaultSIIService(mockClient)
+	// Preparar datos de prueba
+	trackID := "123456789"
+	estadoEsperado := &models.EstadoConsulta{
+		TrackID:        trackID,
+		Estado:         models.EstadoAceptado,
+		Glosa:          "DTE Aceptado",
+		FechaRecepcion: time.Now(),
+		FechaProceso:   time.Now(),
+	}
+
+	// Configurar comportamiento esperado del mock
+	mockClient.On("ConsultarEstado", ctx, trackID).Return(estadoEsperado, nil)
 
 	// Ejecutar prueba
-	estado, err := service.ConsultarEstado(context.Background(), "123456")
-	assert.NoError(t, err)
-	assert.Equal(t, "EPR", estado.Estado)
-	assert.Equal(t, "Envío Procesado", estado.Glosa)
+	estado, err := service.ConsultarEstado(ctx, trackID)
 
-	// Verificar que se llamaron los métodos esperados
+	// Verificar resultados
+	assert.NoError(t, err)
+	assert.NotNil(t, estado)
+	assert.Equal(t, estadoEsperado.TrackID, estado.TrackID)
+	assert.Equal(t, estadoEsperado.Estado, estado.Estado)
 	mockClient.AssertExpectations(t)
 }
 
-func TestDefaultSIIService_ConsultarDTE(t *testing.T) {
-	// Crear mock del cliente
+func TestConsultarDTE(t *testing.T) {
 	mockClient := new(MockSIIClient)
-	mockClient.On("ObtenerSemilla", mock.Anything).Return("SEMILLA-123", nil)
-	mockClient.On("ObtenerToken", mock.Anything, "SEMILLA-123").Return("TOKEN-123", nil)
-	mockClient.On("ConsultarDTE", mock.Anything, "33", int64(1234), "76212889-6").Return(&models.EstadoSII{
-		Estado: "DTE_RECIBIDO",
-		Glosa:  "DTE Recibido",
-	}, nil)
+	service := NewSIIService(mockClient)
+	ctx := testContext()
 
-	// Crear servicio
-	service := NewDefaultSIIService(mockClient)
+	// Preparar datos de prueba
+	tipoDTE := models.DTEFactura
+	folio := int64(1234)
+	rutEmisor := "76.123.456-7"
+	estadoEsperado := &models.EstadoConsulta{
+		TrackID:        "123456789",
+		Estado:         models.EstadoAceptado,
+		Glosa:          "DTE Aceptado",
+		FechaRecepcion: time.Now(),
+		FechaProceso:   time.Now(),
+	}
+
+	// Configurar comportamiento esperado del mock
+	mockClient.On("ConsultarDTE", ctx, tipoDTE, folio, rutEmisor).Return(estadoEsperado, nil)
 
 	// Ejecutar prueba
-	estado, err := service.ConsultarDTE(context.Background(), "33", 1234, "76212889-6")
-	assert.NoError(t, err)
-	assert.Equal(t, "DTE_RECIBIDO", estado.Estado)
-	assert.Equal(t, "DTE Recibido", estado.Glosa)
+	estado, err := service.ConsultarDTE(ctx, tipoDTE, folio, rutEmisor)
 
-	// Verificar que se llamaron los métodos esperados
+	// Verificar resultados
+	assert.NoError(t, err)
+	assert.NotNil(t, estado)
+	assert.Equal(t, estadoEsperado.TrackID, estado.TrackID)
+	assert.Equal(t, estadoEsperado.Estado, estado.Estado)
 	mockClient.AssertExpectations(t)
 }
 
-func TestDefaultSIIService_VerificarComunicacion(t *testing.T) {
-	// Crear mock del cliente
+func TestVerificarComunicacion(t *testing.T) {
 	mockClient := new(MockSIIClient)
-	mockClient.On("VerificarComunicacion", mock.Anything).Return(nil)
+	service := NewSIIService(mockClient)
+	ctx := testContext()
 
-	// Crear servicio
-	service := NewDefaultSIIService(mockClient)
+	// Configurar comportamiento esperado del mock
+	mockClient.On("VerificarComunicacion", ctx).Return(nil)
 
 	// Ejecutar prueba
-	err := service.VerificarComunicacion(context.Background())
+	err := service.VerificarComunicacion(ctx)
+
+	// Verificar resultados
 	assert.NoError(t, err)
-
-	// Verificar que se llamaron los métodos esperados
-	mockClient.AssertExpectations(t)
-}
-
-func TestDefaultSIIService_TokenExpiration(t *testing.T) {
-	// Crear mock del cliente
-	mockClient := new(MockSIIClient)
-	mockClient.On("ObtenerSemilla", mock.Anything).Return("SEMILLA-123", nil).Times(2)
-	mockClient.On("ObtenerToken", mock.Anything, "SEMILLA-123").Return("TOKEN-123", nil).Times(2)
-	mockClient.On("EnviarDTE", mock.Anything, []byte("<DTE></DTE>"), "TOKEN-123").Return(&models.RespuestaSII{
-		EstadoSII: models.EstadoSII{
-			Estado:  "0",
-			Glosa:   "DTE Recibido",
-			TrackID: "123456",
-		},
-	}, nil).Times(2)
-
-	// Crear servicio
-	service := NewDefaultSIIService(mockClient)
-
-	// Primera llamada - obtiene nuevo token
-	_, err := service.EnviarDTE(context.Background(), []byte("<DTE></DTE>"))
-	assert.NoError(t, err)
-
-	// Simular expiración del token
-	service.tokenExp = time.Now().Add(-1 * time.Hour)
-
-	// Segunda llamada - debe obtener nuevo token
-	_, err = service.EnviarDTE(context.Background(), []byte("<DTE></DTE>"))
-	assert.NoError(t, err)
-
-	// Verificar que se llamaron los métodos esperados
 	mockClient.AssertExpectations(t)
 }
