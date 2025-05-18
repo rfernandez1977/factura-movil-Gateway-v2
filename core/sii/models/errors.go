@@ -70,7 +70,7 @@ func ErrorFromEstado(estado string, glosa string) *SIIError {
 	case "":
 		return NewSIIError(ErrProcesamiento, "Estado no disponible", nil)
 	case "RCH":
-		return NewSIIError(ErrDTEInvalido, glosa, nil)
+		return NewSIIError(ErrDTEInvalid, glosa, nil)
 	case "SOK":
 		return nil // No es un error
 	case "EPR":

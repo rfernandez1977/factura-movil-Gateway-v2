@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/fmgo/core/firma/common"
-	"github.com/fmgo/core/firma/models"
+	"FMgo/core/firma/common"
+	"FMgo/core/firma/models"
 )
 
 // CAFStorage implementa el almacenamiento de CAF en sistema de archivos

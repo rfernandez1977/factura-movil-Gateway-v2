@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fmgo/core/sii/infrastructure/certificates"
-	"github.com/fmgo/core/sii/logger"
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/infrastructure/certificates"
+	"FMgo/core/sii/logger"
+	"FMgo/core/sii/models"
 	"github.com/stretchr/testify/assert"
 )
 

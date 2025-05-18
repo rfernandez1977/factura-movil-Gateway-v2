@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/fmgo/core/firma/common"
-	"github.com/fmgo/core/firma/models"
+	"FMgo/core/firma/common"
+	"FMgo/core/firma/models"
 )
 
 // CertificadoStorage implementa el almacenamiento de certificados en sistema de archivos

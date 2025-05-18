@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/models"
 )
 
 // SIIClient define la interfaz para el cliente del SII

@@ -1,14 +1,14 @@
 package services
 
 import (
-	"github.com/fmgo/core/sii/logger"
+	"FMgo/core/sii/logger"
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/fmgo/core/firma/services"
-	"github.com/fmgo/core/sii/client"
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/firma/services"
+	"FMgo/core/sii/client"
+	"FMgo/core/sii/models"
 )
 
 // IntegrationService maneja la integración entre DTE, Firma y SII

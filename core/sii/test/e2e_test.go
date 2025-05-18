@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/core/firma/services"
-	"github.com/fmgo/core/sii/client"
-	"github.com/fmgo/core/sii/logger"
-	"github.com/fmgo/core/sii/models"
-	siiservices "github.com/fmgo/core/sii/services"
+	"FMgo/core/firma/services"
+	"FMgo/core/sii/client"
+	"FMgo/core/sii/logger"
+	"FMgo/core/sii/models"
+	siiservices "FMgo/core/sii/services"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/models"
 )
 
 // DatosFirmante contiene la información del titular del certificado

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fmgo/core/sii/logger"
+	"FMgo/core/sii/logger"
 )
 
 // TokenInfo representa la información de un token

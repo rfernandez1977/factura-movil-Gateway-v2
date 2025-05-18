@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

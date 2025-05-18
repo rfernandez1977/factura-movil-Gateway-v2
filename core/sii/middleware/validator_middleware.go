@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/fmgo/core/sii/models"
-	"github.com/fmgo/core/sii/services"
+	"FMgo/core/sii/models"
+	"FMgo/core/sii/services"
 )
 
 // ValidatorMiddleware proporciona middleware para validación automática de DTEs

@@ -3,9 +3,9 @@ package validator
 import (
 	"fmt"
 
-	"github.com/fmgo/core/dte/types"
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils/validation"
+	"FMgo/core/dte/types"
+	"FMgo/models"
+	"FMgo/utils/validation"
 )
 
 // Constantes para los tipos de documentos

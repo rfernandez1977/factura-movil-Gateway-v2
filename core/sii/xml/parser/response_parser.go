@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/models"
 )
 
 // ResponseParser parsea las respuestas XML del SII

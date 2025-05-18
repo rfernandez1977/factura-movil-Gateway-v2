@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fmgo/core/sii/models"
-	"github.com/fmgo/utils/logger"
+	"FMgo/core/sii/models"
+	"FMgo/utils/logger"
 )
 
 // SIIClient define la interfaz para el cliente del SII.

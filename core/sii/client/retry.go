@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/core/sii/models"
+	"FMgo/core/sii/models"
 )
 
 // RetryConfig define la configuración para reintentos

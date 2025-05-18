@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/core/dte/types"
+	"FMgo/core/dte/types"
 )
 
 // Generator es la interfaz para generar DTEs

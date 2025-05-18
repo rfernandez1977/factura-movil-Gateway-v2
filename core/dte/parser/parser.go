@@ -3,7 +3,7 @@ package parser
 import (
 	"encoding/xml"
 
-	"github.com/fmgo/core/dte/types"
+	"FMgo/core/dte/types"
 )
 
 // Parser es la interfaz para parsear DTEs desde diferentes formatos

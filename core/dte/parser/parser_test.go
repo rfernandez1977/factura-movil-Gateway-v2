@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/core/dte/types"
+	"FMgo/core/dte/types"
 )
 
 func TestParseXML(t *testing.T) {

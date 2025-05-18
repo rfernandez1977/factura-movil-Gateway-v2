@@ -2,58 +2,61 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
-// Config representa la configuración para los reintentos
+// Config contiene la configuración para los reintentos
 type Config struct {
 	MaxRetries  int
-	InitialWait time.Duration
-	MaxWait     time.Duration
+	WaitTime    time.Duration
+	MaxWaitTime time.Duration
 }
 
 // DefaultConfig retorna una configuración por defecto
 func DefaultConfig() *Config {
 	return &Config{
 		MaxRetries:  3,
-		InitialWait: 1 * time.Second,
-		MaxWait:     30 * time.Second,
+		WaitTime:    time.Second,
+		MaxWaitTime: time.Second * 10,
 	}
 }
 
 // Do ejecuta una función con reintentos según la configuración
-func Do(ctx context.Context, cfg *Config, fn func() error) error {
-	if cfg == nil {
-		cfg = DefaultConfig()
-	}
+func Do(ctx context.Context, config *Config, fn func() error) error {
+	var lastErr error
+	waitTime := config.WaitTime
 
-	var err error
-	wait := cfg.InitialWait
-
-	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+	for i := 0; i <= config.MaxRetries; i++ {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			if err = fn(); err == nil {
-				return nil
-			}
+		}
 
-			if attempt == cfg.MaxRetries {
-				return err
-			}
+		if err := fn(); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
 
-			time.Sleep(wait)
-			wait = min(wait*2, cfg.MaxWait)
+		if i == config.MaxRetries {
+			break
+		}
+
+		// Esperar antes del siguiente reintento
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(waitTime):
+		}
+
+		// Incrementar el tiempo de espera para el siguiente reintento
+		waitTime *= 2
+		if waitTime > config.MaxWaitTime {
+			waitTime = config.MaxWaitTime
 		}
 	}
 
-	return err
-}
-
-func min(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-	return b
+	return fmt.Errorf("máximo número de reintentos alcanzado: %w", lastErr)
 }

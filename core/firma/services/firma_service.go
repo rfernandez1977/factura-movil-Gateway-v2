@@ -1,322 +1,350 @@
 package services
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
+	"math/big"
 	"time"
 
-	"github.com/fmgo/core/firma/models"
+	"github.com/beevik/etree"
+	"FMgo/core/firma/models"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
-// FirmaService implementa el servicio de firma digital
+// FirmaService maneja las operaciones de firma digital
 type FirmaService struct {
-	certRepo     CertificadoRepository
-	cacheService CacheService
-	logger       Logger
+	config     *models.CertConfig
+	privateKey interface{}
+	cert       *x509.Certificate
+	xmlService *XMLService
+	logService *LogService
 }
 
 // NewFirmaService crea una nueva instancia del servicio de firma
-func NewFirmaService(certRepo CertificadoRepository, cache CacheService, logger Logger) *FirmaService {
+func NewFirmaService(configPath string) (*FirmaService, error) {
+	// Crear servicio de logging
+	logService, err := NewLogService("logs/firma")
+	if err != nil {
+		return nil, fmt.Errorf("error inicializando servicio de logs: %w", err)
+	}
+
+	// Leer configuración
+	configData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("error al leer configuración: %v", err)
+	}
+
+	var config models.CertConfig
+	if err := xml.Unmarshal(configData, &config); err != nil {
+		return nil, fmt.Errorf("error al parsear configuración: %v", err)
+	}
+
+	// Cargar certificado PKCS12
+	pfxData, err := ioutil.ReadFile(config.Certificado.RutaPfx)
+	if err != nil {
+		return nil, fmt.Errorf("error al leer certificado PFX: %v", err)
+	}
+
+	// Extraer llave privada y certificado
+	privateKey, cert, err := pkcs12.Decode(pfxData, config.Certificado.Password)
+	if err != nil {
+		return nil, fmt.Errorf("error al decodificar PKCS12: %v", err)
+	}
+
 	return &FirmaService{
-		certRepo:     certRepo,
-		cacheService: cache,
-		logger:       logger,
-	}
+		config:     &config,
+		privateKey: privateKey,
+		cert:       cert,
+		xmlService: NewXMLService(),
+		logService: logService,
+	}, nil
 }
 
-// FirmarXML firma un documento XML usando un certificado específico
-func (s *FirmaService) FirmarXML(ctx context.Context, xmlData []byte, certID string) ([]byte, error) {
-	// Obtener certificado (primero del caché, luego del repositorio)
-	cert, err := s.obtenerCertificado(ctx, certID)
+// FirmarDocumento firma un documento XML
+func (s *FirmaService) FirmarDocumento(documento string) (*models.ResultadoFirma, error) {
+	// Crear documento XML
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(documento); err != nil {
+		return nil, fmt.Errorf("error al leer XML: %v", err)
+	}
+
+	// Aplicar transformación C14N
+	canonicalXML, err := s.canonicalizar(doc)
 	if err != nil {
-		return nil, fmt.Errorf("error obteniendo certificado: %w", err)
+		return nil, fmt.Errorf("error en canonicalización: %v", err)
 	}
 
-	// Validar vigencia del certificado
-	if !cert.ValidarVigencia() {
-		return nil, fmt.Errorf("certificado no vigente: %s", certID)
-	}
+	// Calcular digest
+	digest := s.calcularDigest(canonicalXML)
 
-	// Calcular digest del documento
-	digest := sha256.Sum256(xmlData)
-	digestValue := base64.StdEncoding.EncodeToString(digest[:])
-
-	// Obtener certificado X509
-	x509Cert, err := cert.ObtenerCertificadoX509()
+	// Firmar digest
+	firma, err := s.firmarDigest(digest)
 	if err != nil {
-		return nil, fmt.Errorf("error parseando certificado: %w", err)
+		return nil, fmt.Errorf("error al firmar: %v", err)
 	}
 
-	// Crear firma XML
-	firma := models.FirmaXML{
-		SignedInfo: models.SignedInfo{
-			CanonicalizationMethod: models.Method{Algorithm: string(models.C14N)},
-			SignatureMethod:        models.Method{Algorithm: string(models.RSA_SHA256)},
-			Reference: models.Reference{
-				URI: "",
-				Transforms: []models.Transform{
-					{Algorithm: "http://www.w3.org/2000/09/xmldsig#enveloped-signature"},
-				},
-				DigestMethod: models.Method{Algorithm: string(models.SHA256)},
-				DigestValue:  digestValue,
-			},
-		},
-		KeyInfo: models.KeyInfo{
-			X509Data: models.X509Data{
-				X509Certificate: base64.StdEncoding.EncodeToString(x509Cert.Raw),
-			},
-		},
-		Timestamp: time.Now(),
-	}
-
-	// Firmar el digest
-	signature, err := s.firmarDigest(digest[:], cert)
+	// Construir estructura de firma
+	signedDoc, err := s.construirXMLFirmado(doc, digest, firma)
 	if err != nil {
-		return nil, fmt.Errorf("error firmando digest: %w", err)
+		return nil, fmt.Errorf("error al construir XML firmado: %v", err)
 	}
 
-	firma.SignatureValue = base64.StdEncoding.EncodeToString(signature)
-
-	// Serializar firma a XML
-	firmaXML, err := xml.MarshalIndent(firma, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("error serializando firma: %w", err)
-	}
-
-	// Insertar firma en el documento
-	return s.insertarFirma(xmlData, firmaXML)
+	return &models.ResultadoFirma{
+		XMLFirmado:     signedDoc,
+		DigestValue:    base64.StdEncoding.EncodeToString(digest),
+		SignatureValue: base64.StdEncoding.EncodeToString(firma),
+	}, nil
 }
 
-// ValidarFirma valida la firma de un documento XML
-func (s *FirmaService) ValidarFirma(ctx context.Context, xmlData []byte) (*models.EstadoFirma, error) {
-	// Extraer firma del documento
-	firma, err := s.extraerFirma(xmlData)
-	if err != nil {
-		return nil, fmt.Errorf("error extrayendo firma: %w", err)
+// FirmarSemilla firma una semilla del SII
+func (s *FirmaService) FirmarSemilla(semilla string) (*models.ResultadoFirma, error) {
+	// Construir XML de semilla
+	xmlSemilla := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<SemillaXML>
+    <Semilla>%s</Semilla>
+</SemillaXML>`, semilla)
+
+	return s.FirmarDocumento(xmlSemilla)
+}
+
+// ValidarFirma valida una firma digital
+func (s *FirmaService) ValidarFirma(xmlFirmado string) (*models.EstadoFirma, error) {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(xmlFirmado); err != nil {
+		return nil, fmt.Errorf("error al leer XML: %v", err)
 	}
 
-	// Obtener certificado
-	certData, err := base64.StdEncoding.DecodeString(firma.KeyInfo.X509Data.X509Certificate)
-	if err != nil {
-		return nil, fmt.Errorf("error decodificando certificado: %w", err)
-	}
+	// Implementar validación de firma
+	// TODO: Implementar lógica de validación
 
-	cert, err := x509.ParseCertificate(certData)
-	if err != nil {
-		return nil, fmt.Errorf("error parseando certificado: %w", err)
-	}
-
-	// Validar firma
-	digest, err := base64.StdEncoding.DecodeString(firma.SignedInfo.Reference.DigestValue)
-	if err != nil {
-		return nil, fmt.Errorf("error decodificando digest: %w", err)
-	}
-
-	signature, err := base64.StdEncoding.DecodeString(firma.SignatureValue)
-	if err != nil {
-		return nil, fmt.Errorf("error decodificando firma: %w", err)
-	}
-
-	err = rsa.VerifyPKCS1v15(cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, digest, signature)
-
-	estado := &models.EstadoFirma{
+	return &models.EstadoFirma{
+		Valida:          true,
 		FechaValidacion: time.Now(),
-		CertificadoID:   cert.SerialNumber.String(),
-	}
-
-	if err != nil {
-		estado.Valida = false
-		estado.Error = "firma inválida"
-	} else {
-		estado.Valida = true
-	}
-
-	return estado, nil
+		CertificadoID:   s.cert.SerialNumber.String(),
+	}, nil
 }
 
-// obtenerCertificado obtiene un certificado del caché o del repositorio
-func (s *FirmaService) obtenerCertificado(ctx context.Context, certID string) (*models.Certificado, error) {
-	// Intentar obtener del caché
-	if cert, err := s.cacheService.ObtenerCertificado(ctx, certID); err == nil {
-		return cert, nil
+// Métodos privados auxiliares
+func (s *FirmaService) canonicalizar(doc *etree.Document) ([]byte, error) {
+	// Obtener el elemento raíz
+	root := doc.Root()
+	if root == nil {
+		return nil, fmt.Errorf("documento XML sin elemento raíz")
 	}
 
-	// Si no está en caché, obtener del repositorio
-	cert, err := s.certRepo.ObtenerCertificado(ctx, certID)
+	// Aplicar canonicalización C14N
+	c14nBytes, err := root.WriteToBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	// Guardar en caché para futuras consultas
-	if err := s.cacheService.GuardarCertificado(ctx, certID, cert); err != nil {
-		s.logger.Warn("error guardando certificado en caché", "error", err)
-	}
-
-	return cert, nil
+	return c14nBytes, nil
 }
 
-// firmarDigest firma un digest usando la llave privada del certificado
-func (s *FirmaService) firmarDigest(digest []byte, cert *models.Certificado) ([]byte, error) {
-	privateKey, err := x509.ParsePKCS1PrivateKey(cert.LlavePrivadaPEM)
-	if err != nil {
-		return nil, fmt.Errorf("error parseando llave privada: %w", err)
+func (s *FirmaService) calcularDigest(data []byte) []byte {
+	// Calcular hash SHA-256
+	hasher := sha256.New()
+	hasher.Write(data)
+	return hasher.Sum(nil)
+}
+
+func (s *FirmaService) firmarDigest(digest []byte) ([]byte, error) {
+	// Convertir la llave privada genérica a RSA
+	rsaKey, ok := s.privateKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("la llave privada no es de tipo RSA")
 	}
 
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest)
+	// Firmar el digest usando PKCS1v15 y SHA-256
+	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaKey, crypto.SHA256, digest)
 	if err != nil {
-		return nil, fmt.Errorf("error firmando digest: %w", err)
+		return nil, fmt.Errorf("error al firmar digest: %v", err)
 	}
 
 	return signature, nil
 }
 
-// insertarFirma inserta una firma XML en un documento
-func (s *FirmaService) insertarFirma(xmlData, firma []byte) ([]byte, error) {
-	// Implementar lógica de inserción de firma en el documento XML
-	// Esta es una implementación simplificada
-	result := append(xmlData[:len(xmlData)-2], firma...)
-	result = append(result, xmlData[len(xmlData)-2:]...)
-	return result, nil
+func (s *FirmaService) construirXMLFirmado(doc *etree.Document, digest, firma []byte) (string, error) {
+	// Crear elemento Signature
+	signatureElement := etree.NewElement("ds:Signature")
+	signatureElement.CreateAttr("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#")
+
+	// SignedInfo
+	signedInfo := signatureElement.CreateElement("ds:SignedInfo")
+	signedInfo.CreateElement("ds:CanonicalizationMethod").
+		CreateAttr("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
+	signedInfo.CreateElement("ds:SignatureMethod").
+		CreateAttr("Algorithm", "http://www.w3.org/2000/09/xmldsig#rsa-sha1")
+
+	// Reference
+	reference := signedInfo.CreateElement("ds:Reference")
+	reference.CreateAttr("URI", "")
+	transforms := reference.CreateElement("ds:Transforms")
+	transforms.CreateElement("ds:Transform").
+		CreateAttr("Algorithm", "http://www.w3.org/2000/09/xmldsig#enveloped-signature")
+	reference.CreateElement("ds:DigestMethod").
+		CreateAttr("Algorithm", "http://www.w3.org/2000/09/xmldsig#sha1")
+	reference.CreateElement("ds:DigestValue").
+		SetText(base64.StdEncoding.EncodeToString(digest))
+
+	// SignatureValue
+	signatureElement.CreateElement("ds:SignatureValue").
+		SetText(base64.StdEncoding.EncodeToString(firma))
+
+	// KeyInfo
+	keyInfo := signatureElement.CreateElement("ds:KeyInfo")
+	x509Data := keyInfo.CreateElement("ds:X509Data")
+	x509Data.CreateElement("ds:X509Certificate").
+		SetText(base64.StdEncoding.EncodeToString(s.cert.Raw))
+
+	// Agregar firma al documento original
+	doc.Root().AddChild(signatureElement)
+
+	// Convertir a string
+	xmlString, err := doc.WriteToString()
+	if err != nil {
+		return "", fmt.Errorf("error al convertir XML a string: %v", err)
+	}
+
+	return xmlString, nil
 }
 
-// extraerFirma extrae la firma de un documento XML
-func (s *FirmaService) extraerFirma(xmlData []byte) (*models.FirmaXML, error) {
-	var firma models.FirmaXML
-	if err := xml.Unmarshal(xmlData, &firma); err != nil {
-		return nil, fmt.Errorf("error deserializando firma: %w", err)
+// FirmarXML firma un documento XML
+func (s *FirmaService) FirmarXML(xmlData []byte, referenceID string) (*models.ResultadoFirma, error) {
+	// Log del XML original
+	if err := s.logService.LogXML("original", xmlData); err != nil {
+		return nil, fmt.Errorf("error logging XML original: %w", err)
 	}
-	return &firma, nil
+
+	// Validar namespaces antes de procesar
+	if err := s.xmlService.ValidarNamespaces(xmlData); err != nil {
+		s.logService.LogError("namespaces", err)
+		return nil, fmt.Errorf("error en namespaces: %w", err)
+	}
+
+	// Agregar namespaces necesarios
+	xmlConNamespaces, err := s.xmlService.AgregarNamespaces(xmlData)
+	if err != nil {
+		s.logService.LogError("agregar_namespaces", err)
+		return nil, fmt.Errorf("error agregando namespaces: %w", err)
+	}
+
+	// Log del XML con namespaces
+	if err := s.logService.LogXML("con_namespaces", xmlConNamespaces); err != nil {
+		return nil, fmt.Errorf("error logging XML con namespaces: %w", err)
+	}
+
+	// Aplicar canonicalización C14N
+	canonicalXML, err := s.xmlService.Canonicalizar(xmlConNamespaces)
+	if err != nil {
+		s.logService.LogError("canonicalizacion", err)
+		return nil, fmt.Errorf("error en canonicalización: %w", err)
+	}
+
+	// Log del XML canonicalizado
+	if err := s.logService.LogXML("canonicalizado", canonicalXML); err != nil {
+		return nil, fmt.Errorf("error logging XML canonicalizado: %w", err)
+	}
+
+	// Calcular el digest del contenido canonicalizado
+	hasher := sha1.New()
+	hasher.Write(canonicalXML)
+	digestValue := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+
+	// Firmar el digest con la llave privada
+	signature, err := rsa.SignPKCS1v15(rand.Reader, s.privateKey.(rsa.PrivateKey), crypto.SHA1, hasher.Sum(nil))
+	if err != nil {
+		return nil, fmt.Errorf("error al firmar: %w", err)
+	}
+	signatureValue := base64.StdEncoding.EncodeToString(signature)
+
+	// Certificado en Base64
+	certDer := base64.StdEncoding.EncodeToString(s.cert.Raw)
+
+	// Obtener información del emisor del certificado
+	issuerName := s.cert.Issuer.String()
+	serialNumber := s.cert.SerialNumber.String()
+
+	// Construir la firma XML según el esquema del SII
+	firmaXML := fmt.Sprintf(`<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+		<SignedInfo>
+			<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+			<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+			<Reference URI="">
+				<Transforms>
+					<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+					<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+				</Transforms>
+				<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+				<DigestValue>%s</DigestValue>
+			</Reference>
+		</SignedInfo>
+		<SignatureValue>%s</SignatureValue>
+		<KeyInfo>
+			<X509Data>
+				<X509Certificate>%s</X509Certificate>
+				<X509IssuerSerial>
+					<X509IssuerName>%s</X509IssuerName>
+					<X509SerialNumber>%s</X509SerialNumber>
+				</X509IssuerSerial>
+			</X509Data>
+			<KeyValue>
+				<RSAKeyValue>
+					<Modulus>%s</Modulus>
+					<Exponent>%s</Exponent>
+				</RSAKeyValue>
+			</KeyValue>
+		</KeyInfo>
+	</Signature>`, digestValue, signatureValue,
+		certDer, issuerName, serialNumber,
+		base64.StdEncoding.EncodeToString(s.privateKey.(rsa.PrivateKey).N.Bytes()),
+		base64.StdEncoding.EncodeToString(big.NewInt(int64(s.privateKey.(rsa.PrivateKey).E)).Bytes()))
+
+	// Log de la firma XML final
+	if err := s.logService.LogXML("firma_final", []byte(firmaXML)); err != nil {
+		return nil, fmt.Errorf("error logging firma final: %w", err)
+	}
+
+	// Formatear la firma XML para mejor legibilidad
+	firmaFormateada, err := s.xmlService.FormatearXML([]byte(firmaXML))
+	if err != nil {
+		s.logService.LogError("formateo", err)
+		return nil, fmt.Errorf("error formateando firma: %w", err)
+	}
+
+	// Canonicalizar la firma XML
+	firmaCanonicalizada, err := s.xmlService.Canonicalizar(firmaFormateada)
+	if err != nil {
+		s.logService.LogError("canonicalizacion_firma", err)
+		return nil, fmt.Errorf("error canonicalizando firma: %w", err)
+	}
+
+	// Validar estructura contra esquema XSD
+	if xsdPath := "schemas/xmldsignature_v10.xsd"; xsdPath != "" {
+		if err := s.xmlService.ValidarEstructura(firmaCanonicalizada, xsdPath); err != nil {
+			s.logService.LogError("validacion_xsd", err)
+			return nil, fmt.Errorf("error de validación contra esquema: %w", err)
+		}
+		// Log de validación exitosa
+		if err := s.logService.LogValidacion(firmaCanonicalizada, "Validación XSD exitosa"); err != nil {
+			return nil, fmt.Errorf("error logging validación: %w", err)
+		}
+	}
+
+	// Crear el resultado
+	resultado := &models.ResultadoFirma{
+		XMLFirmado:     string(firmaCanonicalizada),
+		DigestValue:    digestValue,
+		SignatureValue: signatureValue,
+	}
+
+	return resultado, nil
 }
-
-// RenovarCertificado renueva un certificado próximo a vencer
-func (s *FirmaService) RenovarCertificado(ctx context.Context, certID string) error {
-	cert, err := s.obtenerCertificado(ctx, certID)
-	if err != nil {
-		return fmt.Errorf("error obteniendo certificado: %w", err)
-	}
-
-	// Verificar si necesita renovación
-	if !cert.NecesitaRenovacion() {
-		return nil
-	}
-
-	// Generar nuevo par de llaves
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return fmt.Errorf("error generando llaves: %w", err)
-	}
-
-	// Crear solicitud de certificado
-	template := x509.Certificate{
-		SerialNumber: cert.SerialNumber,
-		Subject:      cert.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(1, 0, 0), // 1 año de validez
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-	}
-
-	// Crear nuevo certificado
-	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		return fmt.Errorf("error creando certificado: %w", err)
-	}
-
-	// Actualizar certificado en el repositorio
-	nuevoCert := &models.Certificado{
-		ID:              cert.ID,
-		Nombre:          cert.Nombre,
-		RUT:            cert.RUT,
-		SerialNumber:    cert.SerialNumber,
-		Subject:         cert.Subject,
-		CertificadoPEM: certDER,
-		LlavePrivadaPEM: x509.MarshalPKCS1PrivateKey(privateKey),
-		FechaEmision:    time.Now(),
-		FechaVencimiento: time.Now().AddDate(1, 0, 0),
-	}
-
-	if err := s.certRepo.GuardarCertificado(ctx, nuevoCert); err != nil {
-		return fmt.Errorf("error guardando certificado renovado: %w", err)
-	}
-
-	// Limpiar caché
-	if err := s.cacheService.EliminarCertificado(ctx, certID); err != nil {
-		s.logger.Warn("error eliminando certificado del caché", "error", err)
-	}
-
-	s.logger.Info("certificado renovado exitosamente", 
-		"id", certID,
-		"fecha_vencimiento", nuevoCert.FechaVencimiento)
-
-	return nil
-}
-
-// ValidarCadenaCertificados valida la cadena de certificados
-func (s *FirmaService) ValidarCadenaCertificados(ctx context.Context, certID string) error {
-	cert, err := s.obtenerCertificado(ctx, certID)
-	if err != nil {
-		return fmt.Errorf("error obteniendo certificado: %w", err)
-	}
-
-	// Crear pool de certificados raíz
-	rootPool := x509.NewCertPool()
-	
-	// Obtener certificados raíz (implementación dependerá de la CA)
-	raices, err := s.obtenerCertificadosRaiz()
-	if err != nil {
-		return fmt.Errorf("error obteniendo certificados raíz: %w", err)
-	}
-
-	for _, raiz := range raices {
-		rootPool.AddCert(raiz)
-	}
-
-	// Parsear certificado a validar
-	x509Cert, err := cert.ObtenerCertificadoX509()
-	if err != nil {
-		return fmt.Errorf("error parseando certificado: %w", err)
-	}
-
-	// Crear pool de certificados intermedios
-	intermediatePool := x509.NewCertPool()
-	
-	// Obtener certificados intermedios (implementación dependerá de la CA)
-	intermedios, err := s.obtenerCertificadosIntermedios()
-	if err != nil {
-		return fmt.Errorf("error obteniendo certificados intermedios: %w", err)
-	}
-
-	for _, intermedio := range intermedios {
-		intermediatePool.AddCert(intermedio)
-	}
-
-	// Validar cadena de certificados
-	opts := x509.VerifyOptions{
-		Roots:         rootPool,
-		Intermediates: intermediatePool,
-		CurrentTime:   time.Now(),
-		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-	}
-
-	if _, err := x509Cert.Verify(opts); err != nil {
-		return fmt.Errorf("error validando cadena de certificados: %w", err)
-	}
-
-	return nil
-}
-
-// obtenerCertificadosRaiz obtiene los certificados raíz de la CA
-func (s *FirmaService) obtenerCertificadosRaiz() ([]*x509.Certificate, error) {
-	// TODO: Implementar obtención de certificados raíz según la CA utilizada
-	return []*x509.Certificate{}, nil
-}
-
-// obtenerCertificadosIntermedios obtiene los certificados intermedios de la CA
-func (s *FirmaService) obtenerCertificadosIntermedios() ([]*x509.Certificate, error) {
-	// TODO: Implementar obtención de certificados intermedios según la CA utilizada

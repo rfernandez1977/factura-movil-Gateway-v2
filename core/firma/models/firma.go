@@ -60,3 +60,30 @@ type EstadoFirma struct {
 	Error           string    `json:"error,omitempty"`
 	CertificadoID   string    `json:"certificado_id"`
 }
+
+// ResultadoFirma representa el resultado de una operación de firma digital
+type ResultadoFirma struct {
+	XMLFirmado     string
+	DigestValue    string
+	SignatureValue string
+}
+
+// CAF representa un Código de Autorización de Folios
+type CAF struct {
+	ID            string
+	RutEmisor     string
+	RazonSocial   string
+	TipoDTE       int
+	FolioDesde    int
+	FolioHasta    int
+	FechaAutoriza string
+	XMLContenido  string
+}
+
+// CAFBackup representa un respaldo de CAF
+type CAFBackup struct {
+	CAF           CAF
+	FechaBackup   string
+	HashContenido string
+	Ubicacion     string
+}

@@ -13,20 +13,23 @@ import (
 
 	"crypto/tls"
 
-	"github.com/fmgo/core/sii/infrastructure/certificates"
-	"github.com/fmgo/core/sii/logger"
-	"github.com/fmgo/core/sii/models"
-	"github.com/fmgo/core/sii/retry"
+	"FMgo/core/sii/infrastructure/certificates"
+	"FMgo/core/sii/logger"
+	"FMgo/core/sii/models"
+	"FMgo/core/sii/retry"
+	"FMgo/utils/xmlutils"
 )
 
-// HTTPClient implementa la interfaz SIIClient
+// HTTPClient implementa la interfaz para comunicación con el SII
 type HTTPClient struct {
-	baseURL    string
-	certFile   string
-	keyFile    string
-	retryCount int
-	timeout    time.Duration
-	logger     *logger.Logger
+	baseURL     string
+	retryCount  int
+	timeout     time.Duration
+	logger      logger.Logger
+	xmlParser   *xmlutils.XMLParser
+	client      *http.Client
+	certManager *certificates.CertManager
+	ambiente    models.Ambiente
 }
 
 // Estructuras para parsear las respuestas XML del SII
@@ -81,38 +84,79 @@ var (
 )
 
 // NewHTTPClient crea una nueva instancia del cliente HTTP
-func NewHTTPClient(config *models.Config, logger *logger.Logger) (*HTTPClient, error) {
+func NewHTTPClient(config *models.Config, log logger.Logger) (*HTTPClient, error) {
+	if config == nil {
+		return nil, fmt.Errorf("configuración no puede ser nil")
+	}
+	if log == nil {
+		return nil, fmt.Errorf("logger no puede ser nil")
+	}
+
+	xmlParser := xmlutils.NewXMLParser(false)
+
+	// Si hay un esquema XSD configurado, establecerlo
+	if config.SchemaPath != "" {
+		if err := xmlParser.SetValidator(config.SchemaPath); err != nil {
+			return nil, fmt.Errorf("error configurando validador XML: %w", err)
+		}
+	}
+
+	// Configurar certificado
+	certManager, err := certificates.NewCertManager(config.CertPath, config.KeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("error configurando certificados: %w", err)
+	}
+
+	// Configurar cliente HTTP con certificado TLS
+	cert, err := tls.LoadX509KeyPair(config.CertPath, config.KeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("error cargando certificado: %w", err)
+	}
+
+	client := &http.Client{
+		Timeout: time.Duration(config.Timeout) * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
+		},
+	}
+
 	return &HTTPClient{
-		baseURL:    config.SII.BaseURL,
-		certFile:   config.SII.CertPath,
-		keyFile:    config.SII.KeyPath,
-		retryCount: config.SII.RetryCount,
-		timeout:    time.Duration(config.SII.Timeout) * time.Second,
-		logger:     logger,
+		baseURL:     config.BaseURL,
+		retryCount:  config.RetryCount,
+		timeout:     time.Duration(config.Timeout) * time.Second,
+		logger:      log,
+		xmlParser:   xmlParser,
+		client:      client,
+		certManager: certManager,
+		ambiente:    config.Ambiente,
 	}, nil
 }
 
 // parseSOAPResponse parsea una respuesta SOAP en la estructura correspondiente
-func parseSOAPResponse(body []byte, content interface{}) error {
-	// Remover los namespaces del XML para simplificar el parsing
-	body = []byte(strings.ReplaceAll(string(body), "soap:", ""))
-	body = []byte(strings.ReplaceAll(string(body), `xmlns="http://DefaultNamespace"`, ""))
-	body = []byte(strings.ReplaceAll(string(body), `xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"`, ""))
-
-	// Decodificar el XML
-	decoder := xml.NewDecoder(bytes.NewReader(body))
-	decoder.Strict = false
-	if err := decoder.Decode(content); err != nil {
-		return fmt.Errorf("error al decodificar XML: %v", err)
+func (c *HTTPClient) parseSOAPResponse(body []byte, content interface{}) error {
+	if body == nil {
+		return fmt.Errorf("cuerpo de respuesta no puede ser nil")
 	}
-
-	return nil
+	if content == nil {
+		return fmt.Errorf("contenedor de respuesta no puede ser nil")
+	}
+	return c.xmlParser.ParseSOAP(body, content)
 }
 
-// validarRespuestaHTTP valida la respuesta HTTP del SII
+// validarRespuestaHTTP valida la respuesta HTTP del SII y retorna un error tipado si hay problemas
 func validarRespuestaHTTP(resp *http.Response) error {
+	if resp == nil {
+		return models.NewSIIError(models.ErrProcesamiento, "Respuesta HTTP es nil", nil)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("no se pudo leer el cuerpo de la respuesta")
+		}
+
 		switch resp.StatusCode {
 		case http.StatusUnauthorized:
 			return models.NewSIIError(models.ErrAuthInvalid, "Credenciales inválidas", nil)
@@ -173,7 +217,7 @@ func (c *HTTPClient) ObtenerSemilla(ctx context.Context) (string, error) {
 
 	var respuesta respuestaSII
 	respuesta.Body.Content = &getSeedResponse{}
-	if err := parseSOAPResponse(body, &respuesta); err != nil {
+	if err := c.parseSOAPResponse(body, &respuesta); err != nil {
 		return "", fmt.Errorf("error al decodificar respuesta: %w", err)
 	}
 
@@ -229,7 +273,7 @@ func (c *HTTPClient) ObtenerToken(ctx context.Context, semilla string) (string, 
 
 	var respuesta respuestaSII
 	respuesta.Body.Content = &getTokenResponse{}
-	if err := parseSOAPResponse(body, &respuesta); err != nil {
+	if err := c.parseSOAPResponse(body, &respuesta); err != nil {
 		return "", fmt.Errorf("error al decodificar respuesta: %w", err)
 	}
 
@@ -256,13 +300,20 @@ func (c *HTTPClient) EnviarDTE(ctx context.Context, sobre []byte, token string) 
 	// Agregar token de autenticación
 	req.Header.Set("Cookie", fmt.Sprintf("TOKEN=%s", token))
 
+	// Configurar reintentos
+	retryConfig := &retry.Config{
+		MaxRetries:  c.retryCount,
+		WaitTime:    time.Second,
+		MaxWaitTime: c.timeout,
+	}
+
 	// Ejecutar con reintentos
 	var resp *http.Response
-	err = retry.Do(func() error {
+	err = retry.Do(ctx, retryConfig, func() error {
 		var reqErr error
 		resp, reqErr = c.doRequest(req)
 		return reqErr
-	}, c.retryCount)
+	})
 
 	if err != nil {
 		return nil, fmt.Errorf("error enviando DTE: %w", err)
@@ -277,8 +328,8 @@ func (c *HTTPClient) EnviarDTE(ctx context.Context, sobre []byte, token string) 
 	return respuesta, nil
 }
 
-// ConsultarEstado consulta el estado de un DTE
-func (c *HTTPClient) ConsultarEstado(ctx context.Context, trackID string) (*models.EstadoSII, error) {
+// ConsultarEstado consulta el estado de un envío
+func (c *HTTPClient) ConsultarEstado(ctx context.Context, trackID string) (*models.EstadoConsulta, error) {
 	endpoint := fmt.Sprintf("%s/consultaestadodte", c.baseURL)
 
 	// Preparar datos de consulta
@@ -291,20 +342,30 @@ func (c *HTTPClient) ConsultarEstado(ctx context.Context, trackID string) (*mode
 		return nil, fmt.Errorf("error preparando request: %w", err)
 	}
 
+	// Configurar reintentos
+	retryConfig := &retry.Config{
+		MaxRetries:  c.retryCount,
+		WaitTime:    time.Second,
+		MaxWaitTime: c.timeout,
+	}
+
 	// Ejecutar con reintentos
 	var resp *http.Response
-	err = retry.Do(func() error {
+	err = retry.Do(ctx, retryConfig, func() error {
 		var reqErr error
 		resp, reqErr = c.doRequest(req)
 		return reqErr
-	}, c.retryCount)
+	})
 
 	if err != nil {
 		return nil, fmt.Errorf("error consultando estado: %w", err)
 	}
 
 	// Procesar respuesta
-	estado := &models.EstadoSII{}
+	estado := &models.EstadoConsulta{
+		Estado: models.EstadoDesconocido,
+		Glosa:  "Estado desconocido",
+	}
 	if err := xml.NewDecoder(resp.Body).Decode(estado); err != nil {
 		return nil, fmt.Errorf("error decodificando estado: %w", err)
 	}
@@ -314,23 +375,8 @@ func (c *HTTPClient) ConsultarEstado(ctx context.Context, trackID string) (*mode
 
 // doRequest ejecuta un request HTTP con el certificado configurado
 func (c *HTTPClient) doRequest(req *http.Request) (*http.Response, error) {
-	// Configurar cliente con certificado
-	cert, err := tls.LoadX509KeyPair(c.certFile, c.keyFile)
-	if err != nil {
-		return nil, fmt.Errorf("error cargando certificado: %w", err)
-	}
-
-	client := &http.Client{
-		Timeout: c.timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			},
-		},
-	}
-
 	// Ejecutar request
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error en request HTTP: %w", err)
 	}
@@ -344,8 +390,8 @@ func (c *HTTPClient) doRequest(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-// ConsultarDTE consulta un DTE específico
-func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int64, rutReceptor string) (*models.EstadoSII, error) {
+// ConsultarDTE consulta el estado de un DTE específico
+func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE models.TipoDocumentoSII, folio int64, rutEmisor string) (*models.EstadoConsulta, error) {
 	// Verificar certificado
 	if err := c.certManager.ValidateCertificate(); err != nil {
 		return nil, fmt.Errorf("error de certificado: %w", err)
@@ -363,8 +409,8 @@ func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int
 		return nil, fmt.Errorf("folio debe ser mayor a 0")
 	}
 
-	if rutReceptor == "" {
-		return nil, fmt.Errorf("rutReceptor no puede estar vacío")
+	if rutEmisor == "" {
+		return nil, fmt.Errorf("rutEmisor no puede estar vacío")
 	}
 
 	url := models.URLEstadoDTECert
@@ -372,7 +418,7 @@ func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int
 		url = models.URLEstadoDTEProd
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s?tipoDTE=%s&folio=%d&rutReceptor=%s", url, tipoDTE, folio, rutReceptor), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s?tipoDTE=%s&folio=%d&rutEmisor=%s", url, tipoDTE, folio, rutEmisor), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error al crear request: %w", err)
 	}
@@ -394,7 +440,7 @@ func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int
 
 	var respuesta respuestaSII
 	respuesta.Body.Content = &getEstDteResponse{}
-	if err := parseSOAPResponse(body, &respuesta); err != nil {
+	if err := c.parseSOAPResponse(body, &respuesta); err != nil {
 		return nil, fmt.Errorf("error al decodificar respuesta: %w", err)
 	}
 
@@ -402,8 +448,8 @@ func (c *HTTPClient) ConsultarDTE(ctx context.Context, tipoDTE string, folio int
 		if dteResp.Estado == "" {
 			return nil, ErrDTENoEncontrado
 		}
-		return &models.EstadoSII{
-			Estado:  dteResp.Estado,
+		return &models.EstadoConsulta{
+			Estado:  models.ParseEstadoSII(dteResp.Estado),
 			Glosa:   dteResp.Glosa,
 			TrackID: dteResp.TrackID,
 		}, nil
@@ -435,4 +481,15 @@ func (c *HTTPClient) GetCertificateInfo() *certificates.CertificateInfo {
 // IsExpiringSoon verifica si el certificado está por expirar
 func (c *HTTPClient) IsExpiringSoon(daysThreshold int) bool {
 	return c.certManager.IsExpiringSoon(daysThreshold)
+}
+
+// prepareRequest prepara un request HTTP con los headers necesarios
+func (c *HTTPClient) prepareRequest(ctx context.Context, method, url string, body []byte) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("error creando request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "text/xml; charset=utf-8")
+	return req, nil
 }

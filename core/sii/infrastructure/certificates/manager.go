@@ -3,7 +3,6 @@ package certificates
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -11,122 +10,83 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-// CertificateInfo contiene la información extraída del certificado
+// CertificateInfo contiene información sobre un certificado
 type CertificateInfo struct {
-	Subject      string
-	Issuer       string
-	SerialNumber string
-	ValidFrom    time.Time
-	ValidUntil   time.Time
-	RutTitular   string
+	Subject      string    `json:"subject"`
+	Issuer       string    `json:"issuer"`
+	NotBefore    time.Time `json:"not_before"`
+	NotAfter     time.Time `json:"not_after"`
+	SerialNumber string    `json:"serial_number"`
 }
 
-// CertificateManager maneja las operaciones con certificados digitales
-type CertificateManager struct {
-	certPath     string
-	certPassword string
-	certInfo     *CertificateInfo
-	tlsConfig    *tls.Config
+// CertManager maneja los certificados digitales
+type CertManager struct {
+	certPath string
+	keyPath  string
+	cert     *x509.Certificate
 }
 
-// NewCertificateManager crea una nueva instancia del gestor de certificados
-func NewCertificateManager(certPath, certPassword string) (*CertificateManager, error) {
-	manager := &CertificateManager{
-		certPath:     certPath,
-		certPassword: certPassword,
+// NewCertManager crea una nueva instancia de CertManager
+func NewCertManager(certPath, keyPath string) (*CertManager, error) {
+	manager := &CertManager{
+		certPath: certPath,
+		keyPath:  keyPath,
 	}
 
 	if err := manager.loadCertificate(); err != nil {
-		return nil, fmt.Errorf("error al cargar certificado: %w", err)
+		return nil, err
 	}
 
 	return manager, nil
 }
 
-// loadCertificate carga y valida el certificado
-func (m *CertificateManager) loadCertificate() error {
-	certData, err := ioutil.ReadFile(m.certPath)
+// loadCertificate carga el certificado desde los archivos
+func (m *CertManager) loadCertificate() error {
+	cert, err := tls.LoadX509KeyPair(m.certPath, m.keyPath)
 	if err != nil {
-		return fmt.Errorf("error al leer archivo de certificado: %w", err)
+		return fmt.Errorf("error cargando certificado: %w", err)
 	}
 
-	// Decodificar el certificado
-	block, _ := pem.Decode(certData)
-	if block == nil {
-		return fmt.Errorf("error al decodificar certificado PEM")
-	}
-
-	// Parsear el certificado
-	cert, err := x509.ParsePKCS12(block.Bytes, []byte(m.certPassword))
+	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		return fmt.Errorf("error al parsear certificado PKCS12: %w", err)
+		return fmt.Errorf("error parseando certificado: %w", err)
 	}
 
-	// Extraer información del certificado
-	m.certInfo = &CertificateInfo{
-		Subject:      cert.Subject.String(),
-		Issuer:       cert.Issuer.String(),
-		SerialNumber: cert.SerialNumber.String(),
-		ValidFrom:    cert.NotBefore,
-		ValidUntil:   cert.NotAfter,
-		RutTitular:   extractRutFromSubject(cert.Subject.String()),
-	}
-
-	// Configurar TLS
-	tlsCert, err := tls.LoadX509KeyPair(m.certPath, m.certPath)
-	if err != nil {
-		return fmt.Errorf("error al cargar par de claves: %w", err)
-	}
-
-	m.tlsConfig = &tls.Config{
-		Certificates: []tls.Certificate{tlsCert},
-		MinVersion:   tls.VersionTLS12,
-	}
-
+	m.cert = x509Cert
 	return nil
 }
 
-// GetTLSConfig retorna la configuración TLS
-func (m *CertificateManager) GetTLSConfig() *tls.Config {
-	return m.tlsConfig
-}
-
-// GetCertificateInfo retorna la información del certificado
-func (m *CertificateManager) GetCertificateInfo() *CertificateInfo {
-	return m.certInfo
-}
-
-// ValidateCertificate valida el certificado actual
-func (m *CertificateManager) ValidateCertificate() error {
-	if m.certInfo == nil {
-		return fmt.Errorf("certificado no cargado")
-	}
-
+// ValidateCertificate valida que el certificado sea válido
+func (m *CertManager) ValidateCertificate() error {
 	now := time.Now()
-	if now.Before(m.certInfo.ValidFrom) {
+
+	if now.Before(m.cert.NotBefore) {
 		return fmt.Errorf("certificado aún no es válido")
 	}
-	if now.After(m.certInfo.ValidUntil) {
+
+	if now.After(m.cert.NotAfter) {
 		return fmt.Errorf("certificado expirado")
 	}
 
 	return nil
 }
 
-// IsExpiringSoon verifica si el certificado está por expirar
-func (m *CertificateManager) IsExpiringSoon(daysThreshold int) bool {
-	if m.certInfo == nil {
-		return false
+// GetCertificateInfo retorna información sobre el certificado
+func (m *CertManager) GetCertificateInfo() *CertificateInfo {
+	return &CertificateInfo{
+		Subject:      m.cert.Subject.String(),
+		Issuer:       m.cert.Issuer.String(),
+		NotBefore:    m.cert.NotBefore,
+		NotAfter:     m.cert.NotAfter,
+		SerialNumber: m.cert.SerialNumber.String(),
 	}
-
-	expirationWarningDate := time.Now().AddDate(0, 0, daysThreshold)
-	return m.certInfo.ValidUntil.Before(expirationWarningDate)
 }
 
-// extractRutFromSubject extrae el RUT del subject del certificado
-func extractRutFromSubject(subject string) string {
-	// TODO: Implementar extracción de RUT según formato del certificado
-	return ""
+// IsExpiringSoon verifica si el certificado está por expirar
+func (m *CertManager) IsExpiringSoon(daysThreshold int) bool {
+	expirationDate := m.cert.NotAfter
+	threshold := time.Now().AddDate(0, 0, daysThreshold)
+	return threshold.After(expirationDate)
 }
 
 // Manager maneja las operaciones con certificados

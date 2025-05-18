@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 
-	"github.com/fmgo/core/firma/common"
-	"github.com/fmgo/core/firma/models"
+	"FMgo/core/firma/common"
+	"FMgo/core/firma/models"
 )
 
 // CertificadoRepository define las operaciones del repositorio de certificados
