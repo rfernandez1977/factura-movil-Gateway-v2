@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"software.sslmate.com/src/go-pkcs12"
 
-	"github.com/fmgo/core/sii/services"
+	"FMgo/core/sii/services"
 )
 
 func TestFirmaIntegration(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/core/dte/generator"
-	"github.com/fmgo/core/dte/parser"
-	"github.com/fmgo/core/dte/types"
+	"FMgo/core/dte/generator"
+	"FMgo/core/dte/parser"
+	"FMgo/core/dte/types"
 )
 
 func TestDTEIntegration(t *testing.T) {

@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/fmgo/models"
+	"FMgo/models"
 	"github.com/stretchr/testify/mock"
 )
 
