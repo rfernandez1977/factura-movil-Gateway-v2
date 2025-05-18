@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/gateway/api"
-	"github.com/fmgo/gateway/metrics"
+	"FMgo/gateway/api"
+	"FMgo/gateway/metrics"
 )
 
 // validateEntityData validates required fields for clients and products

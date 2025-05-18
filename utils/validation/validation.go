@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ValidateEmail valida un correo electrónico

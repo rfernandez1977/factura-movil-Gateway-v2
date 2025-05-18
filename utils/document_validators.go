@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/domain"
-	"github.com/fmgo/models"
+	"FMgo/domain"
+	"FMgo/models"
 )
 
 // DocumentValidator define la interfaz para validar documentos tributarios

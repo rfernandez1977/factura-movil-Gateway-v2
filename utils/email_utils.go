@@ -9,7 +9,7 @@ import (
 	"net/textproto"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // EmailUtils maneja el envío de correos electrónicos

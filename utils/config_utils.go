@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/fmgo/config"
+	"FMgo/config"
 )
 
 // GetSiiEndpoint obtiene el endpoint del SII según la configuración

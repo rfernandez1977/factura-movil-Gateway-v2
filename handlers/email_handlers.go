@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/api"
-	"github.com/fmgo/utils"
+	"FMgo/api"
+	"FMgo/utils"
 )
 
 type EmailHandlers struct {

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils/sii"
+	"FMgo/models"
+	"FMgo/utils/sii"
 )
 
 func TestGenerarXMLDTE(t *testing.T) {

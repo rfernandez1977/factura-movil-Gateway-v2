@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils/sii"
+	"FMgo/models"
+	"FMgo/utils/sii"
 
-	"github.com/fmgo/api"
+	"FMgo/api"
 	"github.com/gin-gonic/gin"
 )
 

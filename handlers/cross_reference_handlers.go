@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/fmgo/api"
-	"github.com/fmgo/models"
+	"FMgo/api"
+	"FMgo/models"
 	"github.com/gin-gonic/gin"
 )
 

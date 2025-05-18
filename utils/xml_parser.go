@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ParserXML representa un parser de documentos XML

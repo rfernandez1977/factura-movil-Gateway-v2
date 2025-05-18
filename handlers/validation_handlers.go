@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/fmgo/api"
-	"github.com/fmgo/models"
-	"github.com/fmgo/services/validations"
+	"FMgo/api"
+	"FMgo/models"
+	"FMgo/services/validations"
 )
 
 // ValidationHandler maneja las rutas de validación

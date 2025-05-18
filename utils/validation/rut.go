@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ValidateRUT valida un RUT chileno

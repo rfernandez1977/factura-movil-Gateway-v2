@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // GeneradorXML representa un generador de documentos XML

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/models"
-	"github.com/fmgo/repository" // Corregido el path de importación
+	"FMgo/models"
+	"FMgo/repository" // Corregido el path de importación
 )
 
 type FolioManagementHandlers struct {

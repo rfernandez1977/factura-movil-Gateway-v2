@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // LeerXML lee un archivo XML y lo convierte a una estructura

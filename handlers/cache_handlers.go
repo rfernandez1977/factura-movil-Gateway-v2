@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/api"
+	"FMgo/api"
 )
 
 // CacheHandlers maneja las operaciones de caché

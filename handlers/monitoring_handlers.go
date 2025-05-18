@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/fmgo/api"
-	"github.com/fmgo/services"
+	"FMgo/api"
+	"FMgo/services"
 	"github.com/gin-gonic/gin"
 )
 
