@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	verify "github.com/fmgo/scripts/verify/pkg"
+	verify "FMgo/scripts/verify/pkg"
 )
 
 func main() {
