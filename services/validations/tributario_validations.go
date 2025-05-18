@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/fmgo/domain"
-	"github.com/fmgo/models"
+	"FMgo/domain"
+	"FMgo/models"
 )
 
 // TributarioValidation maneja las validaciones de negocio para documentos tributarios
@@ -168,6 +168,7 @@ func (v *TributarioValidation) validarCalculosImpuestos(doc interface{}) error {
 		montoTotal                float64
 		montoExento               float64
 		totalImpuestosAdicionales float64
+		impuestosAdicionales      []models.ImpuestoAdicional
 	)
 
 	// Tolerancia para comparaciones de montos
@@ -179,42 +180,41 @@ func (v *TributarioValidation) validarCalculosImpuestos(doc interface{}) error {
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-
-		// No podemos acceder a impuestos adicionales en domain.Item
-		// Si necesitas impuestos adicionales, deberás implementar un método para obtenerlos
-		// desde otra fuente o modificar la estructura domain.Item
-
+		impuestosAdicionales = d.ImpuestosAdicionales
 	case *models.Boleta:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-
-		// No podemos acceder a impuestos adicionales en DetalleBoleta
-
 	case *models.NotaCredito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-
-		// No podemos acceder a impuestos adicionales aquí
-
+		impuestosAdicionales = d.ImpuestosAdicionales
 	case *models.NotaDebito:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
-
-		// No podemos acceder a impuestos adicionales aquí
-
+		impuestosAdicionales = d.ImpuestosAdicionales
 	case *models.GuiaDespacho:
 		montoNeto = d.MontoNeto
 		montoIVA = d.MontoIVA
 		montoTotal = d.MontoTotal
 		montoExento = d.MontoExento
+		impuestosAdicionales = d.ImpuestosAdicionales
+	}
 
-		// No podemos acceder a impuestos adicionales aquí
+	// Validar impuestos adicionales si existen
+	if len(impuestosAdicionales) > 0 {
+		if err := v.ValidarImpuestosAdicionales(impuestosAdicionales); err != nil {
+			return err
+		}
+		// Calcular total de impuestos adicionales
+		for _, imp := range impuestosAdicionales {
+			totalImpuestosAdicionales += imp.Monto
+		}
 	}
 
 	// Validar IVA solo si hay monto neto afecto a IVA
@@ -229,7 +229,7 @@ func (v *TributarioValidation) validarCalculosImpuestos(doc interface{}) error {
 		return fmt.Errorf("se ha proporcionado un monto de IVA (%.2f) pero el monto neto es cero o negativo", montoIVA)
 	}
 
-	// Validar total con tolerancia
+	// Validar total con tolerancia incluyendo impuestos adicionales
 	totalCalculado := math.Round((montoNeto+montoExento+montoIVA+totalImpuestosAdicionales)*100) / 100
 	if math.Abs(totalCalculado-montoTotal) > toleranciaMontos {
 		return fmt.Errorf("el total calculado (%.2f) no coincide con el monto total proporcionado (%.2f), diferencia: %.2f, tolerancia máxima: %.2f",
@@ -526,4 +526,54 @@ func (s *TributarioValidation) ValidarTipoReferencia(tipoReferencia models.TipoR
 
 		return fmt.Errorf("tipo de referencia no válido: %s", tipoReferencia)
 	}
+}
+
+// ValidarImpuestosAdicionales valida los impuestos adicionales de un documento
+func (v *TributarioValidation) ValidarImpuestosAdicionales(impuestos []models.ImpuestoAdicional) error {
+	var totalImpuestosAdicionales float64
+	impuestosMap := make(map[string]bool)
+
+	for i, impuesto := range impuestos {
+		// Validar código de impuesto
+		if impuesto.Codigo == "" {
+			return fmt.Errorf("impuesto adicional %d: código es obligatorio", i+1)
+		}
+
+		// Evitar duplicados
+		if impuestosMap[impuesto.Codigo] {
+			return fmt.Errorf("impuesto adicional %d: código %s duplicado", i+1, impuesto.Codigo)
+		}
+		impuestosMap[impuesto.Codigo] = true
+
+		// Validar porcentaje
+		if impuesto.Porcentaje < 0 || impuesto.Porcentaje > 100 {
+			return fmt.Errorf("impuesto adicional %d: porcentaje debe estar entre 0 y 100", i+1)
+		}
+
+		// Validar monto y base imponible
+		if impuesto.BaseImponible <= 0 {
+			return fmt.Errorf("impuesto adicional %d: base imponible debe ser mayor a 0", i+1)
+		}
+
+		// Calcular y validar monto del impuesto
+		montoCalculado := math.Round((impuesto.BaseImponible*(impuesto.Porcentaje/100))*100) / 100
+		if math.Abs(montoCalculado-impuesto.Monto) > 0.01 {
+			return fmt.Errorf("impuesto adicional %d: monto calculado (%.2f) no coincide con el monto proporcionado (%.2f)",
+				i+1, montoCalculado, impuesto.Monto)
+		}
+
+		totalImpuestosAdicionales += impuesto.Monto
+	}
+
+	// Validar límite total de impuestos adicionales (ejemplo: 35% del monto neto)
+	const limiteMaximoPorcentaje = 35.0
+	if len(impuestos) > 0 && impuestos[0].BaseImponible > 0 {
+		porcentajeTotal := (totalImpuestosAdicionales / impuestos[0].BaseImponible) * 100
+		if porcentajeTotal > limiteMaximoPorcentaje {
+			return fmt.Errorf("el total de impuestos adicionales (%.2f%%) excede el límite permitido (%.2f%%)",
+				porcentajeTotal, limiteMaximoPorcentaje)
+		}
+	}
+
+	return nil
 }

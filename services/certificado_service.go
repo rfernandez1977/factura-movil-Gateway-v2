@@ -14,8 +14,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
+	"FMgo/config"
+	"FMgo/models"
 	"github.com/supabase-community/postgrest-go"
 	"software.sslmate.com/src/go-pkcs12"
 )

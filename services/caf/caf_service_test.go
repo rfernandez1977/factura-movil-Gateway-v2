@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
+	"FMgo/config"
+	"FMgo/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

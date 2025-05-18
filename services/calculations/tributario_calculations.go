@@ -3,9 +3,9 @@ package calculations
 import (
 	"fmt"
 
-	"github.com/fmgo/domain"
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils"
+	"FMgo/domain"
+	"FMgo/models"
+	"FMgo/utils"
 )
 
 // TributarioCalculation contiene la lógica para calcular impuestos

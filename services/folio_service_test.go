@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/repository"
+	"FMgo/models"
+	"FMgo/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

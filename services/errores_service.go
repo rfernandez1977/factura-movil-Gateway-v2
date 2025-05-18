@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ErroresService maneja el sistema de errores y recuperación

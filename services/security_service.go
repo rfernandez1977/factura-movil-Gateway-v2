@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

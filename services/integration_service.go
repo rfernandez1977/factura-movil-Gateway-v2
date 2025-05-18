@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 	"github.com/go-redis/redis/v8"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson"

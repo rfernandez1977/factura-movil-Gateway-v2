@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
+	"FMgo/config"
+	"FMgo/models"
 )
 
 // Service representa el servicio de CAF

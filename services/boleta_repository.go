@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // BoletaRepository define la interfaz para el acceso a datos de boletas

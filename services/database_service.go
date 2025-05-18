@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/config"
+	"FMgo/config"
 	"github.com/supabase-community/postgrest-go"
 	supa "github.com/supabase-community/supabase-go"
 )

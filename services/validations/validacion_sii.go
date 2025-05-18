@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // SIIBasicValidator proporciona métodos para validar documentos según las reglas del SII

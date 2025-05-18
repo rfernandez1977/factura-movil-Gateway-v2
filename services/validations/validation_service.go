@@ -1,7 +1,7 @@
 package validations
 
 import (
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ValidationService proporciona métodos para validar documentos tributarios

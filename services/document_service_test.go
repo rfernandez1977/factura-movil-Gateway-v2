@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/domain"
+	"FMgo/domain"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

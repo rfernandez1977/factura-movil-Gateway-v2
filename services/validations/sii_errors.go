@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ValidarRespuestaSII valida una respuesta del SII

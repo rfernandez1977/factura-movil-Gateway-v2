@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils"
+	"FMgo/config"
+	"FMgo/models"
+	"FMgo/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -211,7 +211,7 @@ func (s *SesionService) VerificarToken(token string) (bool, error) {
 
 	// Configurar headers
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "github.com/fmgo/1.0")
+	req.Header.Set("User-Agent", "FMgo/1.0")
 
 	// Enviar request usando el cliente HTTP
 	httpClient := &http.Client{

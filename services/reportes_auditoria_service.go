@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ReportesAuditoriaService maneja la generación de reportes de auditoría

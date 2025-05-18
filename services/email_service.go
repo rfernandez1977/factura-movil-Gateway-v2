@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
+	"FMgo/config"
+	"FMgo/models"
 	"github.com/jordan-wright/email"
 )
 

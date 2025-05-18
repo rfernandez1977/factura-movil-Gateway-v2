@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 	"github.com/go-redis/redis/v8"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/wcharczuk/go-chart"

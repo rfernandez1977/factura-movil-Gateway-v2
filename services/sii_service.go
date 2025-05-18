@@ -5,12 +5,15 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils/sii"
+	"FMgo/config"
+	"FMgo/models"
+	"FMgo/utils"
+	"FMgo/utils/sii"
 )
 
 // SIIService es un alias para la interfaz sii.SIIService
@@ -162,6 +165,128 @@ func (s *SIIService) VerificarComunicacion() error {
 
 	if estado.Estado != models.EstadoSIIAceptado {
 		return fmt.Errorf("error de comunicación con el SII: %s", estado.Glosa)
+	}
+
+	return nil
+}
+
+// CrearEnvioMasivoBoletas crea un envío masivo de boletas según el esquema EnvioBOLETA_v11.xsd
+func (s *SIIService) CrearEnvioMasivoBoletas(xmls []string, rutEmisor string) (string, error) {
+	if len(xmls) == 0 {
+		return "", fmt.Errorf("no hay boletas para enviar")
+	}
+	if len(xmls) > 500 {
+		return "", fmt.Errorf("el número máximo de boletas por envío es 500, se recibieron %d", len(xmls))
+	}
+
+	// Validar RUT emisor
+	if !utils.ValidarRUT(rutEmisor) {
+		return "", fmt.Errorf("RUT emisor inválido: %s", rutEmisor)
+	}
+
+	// Crear carátula del envío
+	caratula := fmt.Sprintf(`
+		<Caratula version="1.0">
+			<RutEmisor>%s</RutEmisor>
+			<RutEnvia>%s</RutEnvia>
+			<RutReceptor>60803000-K</RutReceptor>
+			<FchResol>%s</FchResol>
+			<NroResol>0</NroResol>
+			<TmstFirmaEnv>%s</TmstFirmaEnv>
+			<SubTotDTE>
+				<TpoDTE>39</TpoDTE>
+				<NroDTE>%d</NroDTE>
+			</SubTotDTE>
+		</Caratula>`,
+		rutEmisor,
+		rutEmisor,
+		time.Now().Format("2006-01-02"),
+		time.Now().Format("2006-01-02T15:04:05"),
+		len(xmls),
+	)
+
+	// Crear envío masivo
+	envioID := fmt.Sprintf("SetBOL_%s_%s", rutEmisor, time.Now().Format("20060102150405"))
+	envioMasivo := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<EnvioBOLETA xmlns="http://www.sii.cl/SiiDte" version="1.0">
+	<SetDTE ID="%s">
+		%s
+		%s
+	</SetDTE>
+</EnvioBOLETA>`,
+		envioID,
+		caratula,
+		strings.Join(xmls, "\n"),
+	)
+
+	// Validar estructura del envío
+	if err := s.ValidarEnvioMasivo(envioMasivo); err != nil {
+		return "", fmt.Errorf("error validando envío masivo: %v", err)
+	}
+
+	return envioMasivo, nil
+}
+
+// ValidarEnvioMasivo valida la estructura del envío masivo contra el esquema XSD
+func (s *SIIService) ValidarEnvioMasivo(xml string) error {
+	// Cargar esquema XSD
+	xsdPath := "schemas/EnvioBOLETA_v11.xsd"
+	xsd, err := ioutil.ReadFile(xsdPath)
+	if err != nil {
+		return fmt.Errorf("error leyendo esquema XSD: %v", err)
+	}
+
+	// Validar XML contra esquema
+	if err := utils.ValidarXMLContraXSD(xml, string(xsd)); err != nil {
+		return fmt.Errorf("error validando XML contra esquema: %v", err)
+	}
+
+	return nil
+}
+
+// FirmarEnvioMasivo firma digitalmente el envío masivo de boletas
+func (s *SIIService) FirmarEnvioMasivo(xml string) (string, error) {
+	// Obtener certificado
+	cert, err := s.obtenerCertificado()
+	if err != nil {
+		return "", fmt.Errorf("error obteniendo certificado: %v", err)
+	}
+
+	// Firmar XML
+	xmlFirmado, err := s.firmaService.FirmarXML(xml, cert)
+	if err != nil {
+		return "", fmt.Errorf("error firmando XML: %v", err)
+	}
+
+	return xmlFirmado, nil
+}
+
+// GenerarXMLBoleta genera el XML para una boleta individual
+func (s *SIIService) GenerarXMLBoleta(boleta *models.Boleta) (string, error) {
+	// Convertir boleta a BOLETAType
+	boletaType := models.ConvertirBoleta(boleta)
+
+	// Generar XML
+	xml, err := xml.MarshalIndent(boletaType, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("error generando XML: %v", err)
+	}
+
+	return string(xml), nil
+}
+
+// ValidarXMLBoleta valida el XML de una boleta individual
+func (s *SIIService) ValidarXMLBoleta(xml string) error {
+	// Cargar esquema XSD
+	xsdPath := "schemas/DTE_v10.xsd"
+	xsd, err := ioutil.ReadFile(xsdPath)
+	if err != nil {
+		return fmt.Errorf("error leyendo esquema XSD: %v", err)
+	}
+
+	// Validar XML contra esquema
+	if err := utils.ValidarXMLContraXSD(xml, string(xsd)); err != nil {
+		return fmt.Errorf("error validando XML contra esquema: %v", err)
 	}
 
 	return nil

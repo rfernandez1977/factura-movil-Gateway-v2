@@ -3,8 +3,8 @@ package services
 import (
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/utils"
+	"FMgo/models"
+	"FMgo/utils"
 	"go.uber.org/zap"
 )
 

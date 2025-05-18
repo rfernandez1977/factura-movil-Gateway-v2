@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // ReportesService maneja la generación de reportes

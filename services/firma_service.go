@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
+	"github.com/beevik/etree"
+	"FMgo/config"
+	"FMgo/models"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 // FirmaDigitalService representa el servicio para manejar la firma digital
@@ -403,7 +405,10 @@ func (s *FirmaDigitalService) generarTEDBoleta(boleta *models.BOLETAType) error 
 
 // FirmaService representa el servicio para manejar la firma digital de documentos
 type FirmaService struct {
-	config *config.SupabaseConfig
+	config   *config.SupabaseConfig
+	log      *config.Logger
+	certPath string
+	password string
 }
 
 // NewFirmaService crea una nueva instancia del servicio de firma
@@ -430,76 +435,126 @@ func (s *FirmaService) ObtenerCertificado(empresaID string) (*models.Certificado
 }
 
 // FirmarXML firma un documento XML
-func (s *FirmaService) FirmarXML(xmlData []byte, documentoID string) ([]byte, error) {
-	// Obtener certificado
-	certificado, err := s.ObtenerCertificado(documentoID)
+func (s *FirmaService) FirmarXML(xmlData []byte) ([]byte, error) {
+	s.log.Debug("Iniciando proceso de firma XML")
+
+	// Cargar el certificado P12
+	p12Data, err := ioutil.ReadFile(s.certPath)
 	if err != nil {
-		return nil, fmt.Errorf("error al obtener certificado: %v", err)
+		s.log.Error("Error al leer certificado P12: %v", err)
+		return nil, fmt.Errorf("error al leer certificado P12: %w", err)
 	}
 
-	// Decodificar certificado
-	block, _ := pem.Decode([]byte(certificado.Certificado))
-	if block == nil {
-		return nil, fmt.Errorf("error al decodificar certificado")
-	}
-
-	// Parsear certificado
-	cert, err := x509.ParseCertificate(block.Bytes)
+	// Extraer la clave privada y el certificado
+	privateKey, cert, err := pkcs12.Decode(p12Data, s.password)
 	if err != nil {
-		return nil, fmt.Errorf("error al parsear certificado: %v", err)
+		s.log.Error("Error al decodificar P12: %v", err)
+		return nil, fmt.Errorf("error al decodificar P12: %w", err)
 	}
 
-	// Decodificar llave privada
-	block, _ = pem.Decode([]byte(certificado.LlavePrivada))
-	if block == nil {
-		return nil, fmt.Errorf("error al decodificar llave privada")
+	s.log.Info("Certificado cargado exitosamente: %s", cert.Subject.CommonName)
+
+	// Convertir a RSA
+	rsaPrivateKey, ok := privateKey.(*rsa.PrivateKey)
+	if !ok {
+		s.log.Error("Tipo de clave privada no soportado")
+		return nil, fmt.Errorf("tipo de clave privada no soportado")
 	}
 
-	// Parsear llave privada
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	// Canonicalizar el XML antes de firmar
+	canonicalXML, err := s.canonicalizarXML(xmlData)
 	if err != nil {
-		return nil, fmt.Errorf("error al parsear llave privada: %v", err)
+		s.log.Error("Error al canonicalizar XML: %v", err)
+		return nil, fmt.Errorf("error al canonicalizar XML: %w", err)
 	}
 
-	// Calcular hash del documento
-	hasher := sha1.New()
-	hasher.Write(xmlData)
-	hash := hasher.Sum(nil)
+	// Calcular el hash SHA1 del documento canonicalizado
+	hashed := sha1.Sum(canonicalXML)
 
-	// Firmar hash
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA1, hash)
+	// Firmar el hash con la clave privada
+	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivateKey, crypto.SHA1, hashed[:])
 	if err != nil {
-		return nil, fmt.Errorf("error al firmar: %v", err)
+		s.log.Error("Error al firmar documento: %v", err)
+		return nil, fmt.Errorf("error al firmar documento: %w", err)
 	}
 
-	// Codificar firma en base64
+	// Codificar la firma en base64
 	signatureBase64 := base64.StdEncoding.EncodeToString(signature)
 
-	// Crear nodo de firma
-	firmaXML := fmt.Sprintf(`<Signature>
-		<SignedInfo>
-			<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
-			<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-			<Reference URI="">
-				<Transforms>
-					<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-				</Transforms>
-				<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-				<DigestValue>%s</DigestValue>
-			</Reference>
-		</SignedInfo>
-		<SignatureValue>%s</SignatureValue>
-		<KeyInfo>
-			<X509Data>
-				<X509Certificate>%s</X509Certificate>
-			</X509Data>
-		</KeyInfo>
-	</Signature>`, base64.StdEncoding.EncodeToString(hash), signatureBase64, base64.StdEncoding.EncodeToString(cert.Raw))
+	// Insertar la firma en el documento XML
+	signedXML, err := s.insertarFirmaXML(xmlData, signatureBase64, cert, base64.StdEncoding.EncodeToString(hashed[:]))
+	if err != nil {
+		s.log.Error("Error al insertar firma en XML: %v", err)
+		return nil, fmt.Errorf("error al insertar firma en XML: %w", err)
+	}
 
-	// Agregar firma al XML
-	xmlFirmado := append(xmlData, []byte(firmaXML)...)
+	s.log.Info("Documento XML firmado exitosamente")
+	return signedXML, nil
+}
 
-	return xmlFirmado, nil
+// canonicalizarXML aplica la transformación de canonicalización al XML
+func (s *FirmaService) canonicalizarXML(xmlData []byte) ([]byte, error) {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromBytes(xmlData); err != nil {
+		return nil, fmt.Errorf("error al parsear XML: %w", err)
+	}
+
+	// Aplicar transformación c14n
+	c14n, err := doc.WriteToString()
+	if err != nil {
+		return nil, fmt.Errorf("error en canonicalización: %w", err)
+	}
+
+	return []byte(c14n), nil
+}
+
+// insertarFirmaXML inserta la firma digital en el documento XML
+func (s *FirmaService) insertarFirmaXML(xmlData []byte, firma string, cert *x509.Certificate, digestValue string) ([]byte, error) {
+	// Obtener módulo y exponente de la clave pública RSA
+	rsaKey := cert.PublicKey.(*rsa.PublicKey)
+	modulus := base64.StdEncoding.EncodeToString(rsaKey.N.Bytes())
+	exponent := base64.StdEncoding.EncodeToString(big.NewInt(int64(rsaKey.E)).Bytes())
+
+	// Crear estructura de firma
+	firmaNode := fmt.Sprintf(`
+		<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<SignedInfo>
+				<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+				<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+				<Reference URI="">
+					<Transforms>
+						<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+						<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+					</Transforms>
+					<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+					<DigestValue>%s</DigestValue>
+				</Reference>
+			</SignedInfo>
+			<SignatureValue>%s</SignatureValue>
+			<KeyInfo>
+				<KeyValue>
+					<RSAKeyValue>
+						<Modulus>%s</Modulus>
+						<Exponent>%s</Exponent>
+					</RSAKeyValue>
+				</KeyValue>
+				<X509Data>
+					<X509Certificate>%s</X509Certificate>
+				</X509Data>
+			</KeyInfo>
+		</Signature>
+	`, digestValue, firma, modulus, exponent, base64.StdEncoding.EncodeToString(cert.Raw))
+
+	// Insertar firma antes del cierre del documento
+	docStr := string(xmlData)
+	closeTag := "</Documento>"
+	pos := strings.LastIndex(docStr, closeTag)
+	if pos == -1 {
+		return nil, fmt.Errorf("no se encontró la etiqueta de cierre del documento")
+	}
+
+	signedXML := docStr[:pos] + firmaNode + docStr[pos:]
+	return []byte(signedXML), nil
 }
 
 // ValidarFirma valida una firma digital

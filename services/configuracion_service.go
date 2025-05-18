@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/supabase"
+	"FMgo/models"
+	"FMgo/supabase"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
