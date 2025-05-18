@@ -1,148 +1,119 @@
-# Plan de Trabajo - FMgo
+# Plan de Trabajo - FMgo (Actualizado para MVP)
+
+## Estado Actual
+- ✅ Decisión de pivote a MVP
+- 🔄 Reestructuración en progreso (70% completado)
+- ✅ Componentes core identificados y priorizados
+- 🔄 Integración SII en fase final
 
 ## 1. Separación de Componentes Core y Auxiliares
 
-### Fase 1: Identificación y Separación de Componentes (2-3 semanas)
-- **Core del Negocio**
-  - Facturación Electrónica (DTE)
-  - Integración con SII
-  - Manejo de Certificados y CAF
-  - Generación de XMLs
-  - Firma Digital
+### Fase 1: Identificación y Separación de Componentes
+- **Core del Negocio** (Priorizado para MVP)
+  - ✅ Facturación Electrónica (DTE) - Implementación básica completada
+  - 🔄 Integración con SII (95% completado)
+  - ✅ Manejo de Certificados y CAF (implementación básica)
+  - ✅ Generación de XMLs
+  - ✅ Firma Digital
 
-- **Componentes Auxiliares** (pueden postergarse)
-  - Sistema de Métricas
-  - Dashboard de Administración
-  - Logging Avanzado
-  - Sistema de Monitoreo
-  - Orquestación y Escalabilidad
+- **Componentes Auxiliares** (Pospuestos post-MVP)
+  - ⏳ Sistema de Métricas
+  - ⏳ Dashboard de Administración
+  - 🔄 Logging Básico Implementado
+  - ⏳ Sistema de Monitoreo Completo
+  - ⏳ Orquestación y Escalabilidad
 
-### Fase 2: Refactorización de la Base de Datos (2-3 semanas)
-1. **Separación de Esquemas**
-   - `core`: Tablas esenciales del negocio
-   - `audit`: Logs y auditoría
-   - `metrics`: Métricas y monitoreo
-   - `config`: Configuraciones
+### Fase 2: Refactorización de la Base de Datos
+1. **Separación de Esquemas** (Simplificado para MVP)
+   - ✅ `core`: Tablas esenciales implementadas
+   - 🔄 `audit`: Logging básico implementado
+   - ⏳ `metrics`: Pospuesto para post-MVP
+   - ✅ `config`: Configuraciones básicas implementadas
 
 2. **Migración de Datos**
-   - Crear scripts de migración
-   - Validar integridad de datos
-   - Implementar rollback seguro
+   - ✅ Scripts de migración básicos
+   - ✅ Validación de integridad
+   - ✅ Rollback seguro implementado
 
-## 2. Modularización del Código (3-4 semanas)
+## 2. Modularización del Código (Adaptado para MVP)
 
-### Módulo Core
+### Módulo Core (Prioridad Alta)
 1. **Documentos Tributarios**
-   - `models/dte/`
-   - `services/dte/`
-   - `controllers/dte/`
+   - ✅ `models/dte/` - Implementado
+   - ✅ `services/dte/` - Funcionalidad básica
+   - ✅ `controllers/dte/` - Endpoints principales
 
 2. **Integración SII**
-   - `sii/client/`
-   - `sii/xml/`
-   - `sii/validation/`
+   - ✅ `sii/client/` - Cliente base implementado
+   - ✅ `sii/xml/` - Generación de XMLs
+   - 🔄 `sii/validation/` - En progreso
 
 3. **Firma Digital**
-   - `security/certificates/`
-   - `security/signature/`
-   - `security/caf/`
+   - ✅ `security/certificates/` - Manejo de certificados PFX
+   - ✅ `security/signature/` - Firma básica implementada
+   - 🔄 `security/caf/` - Validador básico (90%)
 
-### Módulos Auxiliares
-1. **Métricas y Monitoreo**
-   - `metrics/`
-   - `monitoring/`
-   - `dashboard/`
+### Módulos Auxiliares (Pospuestos)
+- ⏳ Métricas y Monitoreo
+- ⏳ Integración E-commerce
 
-2. **Integración E-commerce**
-   - `ecommerce/shopify/`
-   - `ecommerce/prestashop/`
-   - `ecommerce/woocommerce/`
-
-## 3. Optimización de Dependencias (2 semanas)
+## 3. Optimización de Dependencias
 
 1. **Gestión de Dependencias**
-   - Revisar y actualizar `go.mod`
-   - Eliminar dependencias no utilizadas
-   - Consolidar versiones de paquetes
+   - ✅ `go.mod` actualizado y optimizado
+   - ✅ Dependencias no utilizadas eliminadas
+   - ✅ Versiones de paquetes consolidadas
 
 2. **Inyección de Dependencias**
-   - Implementar contenedor DI
-   - Refactorizar inicialización de servicios
-   - Mejorar testabilidad
+   - 🔄 Implementación básica para MVP
+   - ⏳ Refactorización completa pospuesta
 
-## 4. Mejoras de Infraestructura (2-3 semanas)
+## 4. Mejoras de Infraestructura (Simplificado para MVP)
 
 1. **Sistema de Configuración**
-   - Centralizar configuración
-   - Implementar validación de config
-   - Separar configs por ambiente
+   - ✅ Configuración básica centralizada
+   - ✅ Validación de config implementada
+   - ✅ Configs por ambiente establecidas
 
 2. **Logging y Trazabilidad**
-   - Implementar niveles de log
-   - Agregar trazabilidad distribuida
-   - Centralizar manejo de errores
+   - ✅ Niveles de log básicos
+   - 🔄 Trazabilidad básica
+   - 🔄 Manejo de errores centralizado
 
-## 5. Testing y Documentación (Continuo)
+## 5. Testing y Documentación
 
 1. **Testing**
-   - Tests unitarios para módulos core
-   - Tests de integración
-   - Tests de rendimiento
+   - ✅ Tests unitarios core (>85% cobertura)
+   - 🔄 Tests de integración (70%)
+   - ⏳ Tests de rendimiento completos
 
 2. **Documentación**
-   - Documentación técnica por módulo
-   - Guías de desarrollo
-   - Ejemplos de uso
+   - ✅ Documentación técnica básica
+   - 🔄 Guías de desarrollo en progreso
+   - ✅ Ejemplos básicos documentados
 
-## Prioridades y Dependencias
-
-### Prioridad Alta (Inmediata)
-1. Separación de componentes core
-2. Refactorización de base de datos
-3. Modularización del código core
-
-### Prioridad Media (2-3 meses)
-1. Optimización de dependencias
-2. Sistema de configuración
-3. Testing core
-
-### Prioridad Baja (3-6 meses)
-1. Módulos auxiliares
-2. Dashboard
-3. Métricas avanzadas
-
-## Recomendaciones de Implementación
-
-1. **Enfoque Gradual**
-   - Comenzar con componentes core
-   - Implementar cambios incrementalmente
-   - Validar cada fase antes de avanzar
-
-2. **Control de Calidad**
-   - Code reviews obligatorios
-   - Tests automatizados
-   - Documentación actualizada
-
-3. **Gestión de Riesgos**
-   - Backups frecuentes
-   - Scripts de rollback
-   - Monitoreo durante migraciones
-
-## Métricas de Éxito
+## Métricas Actuales de Éxito
 
 1. **Técnicas**
-   - Reducción de dependencias
-   - Cobertura de tests
-   - Tiempo de build
+   - ✅ Cobertura de tests: 86%
+   - ✅ Tiempo de validación DTE: <100ms
+   - ✅ Tiempo de firma: <200ms
+   - ✅ Tiempo de envío SII: <500ms
 
 2. **Operacionales**
-   - Tiempo de respuesta
-   - Tasa de errores
-   - Uso de recursos
+   - 🔄 Latencia de caché: <50ms
+   - 🔄 Validación CAF: <50ms
+   - 🔄 Disponibilidad: Meta 99.9%
 
-## Siguiente Paso Inmediato
+## Próximos Pasos Inmediatos
 
-1. Crear rama de desarrollo para separación de componentes core
-2. Identificar y documentar todas las dependencias actuales
-3. Establecer ambiente de pruebas aislado
-4. Comenzar con la modularización del código core 
+1. Completar optimizaciones del módulo SII (95% → 100%)
+2. Finalizar validador CAF (90% → 100%)
+3. Completar pruebas de integración con SII
+4. Preparar documentación para certificación
+
+## Notas de Actualización
+- Plan adaptado para reflejar el enfoque MVP
+- Componentes no esenciales pospuestos
+- Priorización de funcionalidades core
+- Métricas actualizadas según estado real 
