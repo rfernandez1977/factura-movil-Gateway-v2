@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fmgo/config"
+	"FMgo/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

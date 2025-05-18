@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 func TestValidatorMiddleware(t *testing.T) {

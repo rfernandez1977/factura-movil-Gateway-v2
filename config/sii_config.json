@@ -1,0 +1,34 @@
+{
+    "rut_empresa": "76212889-6",
+    "rut_certificado": "76212889-6",
+    "clave_certificado": "83559705FM",
+    "path_certificado": "dev/config/certs/firma/firmaFM.pfx",
+    "base_url": "https://maullin.sii.cl",
+    "retry_count": 3,
+    "timeout": 30,
+    "ambiente": "certificacion",
+    "cert_path": "./certificados/cert_test.crt",
+    "key_path": "./certificados/key_test.key",
+    "schema_path": "./schemas/SiiTypes_v10.xsd",
+    "retry_delay": 5,
+    "monitoring": {
+        "enabled": true,
+        "log_level": "debug",
+        "metrics_enabled": true,
+        "alert_threshold": {
+            "response_time_ms": 2000,
+            "error_rate_percent": 5
+        }
+    },
+    "validation": {
+        "strict_mode": true,
+        "validate_schema": true,
+        "validate_caf": true,
+        "validate_firma": true
+    },
+    "cache": {
+        "enabled": true,
+        "ttl_seconds": 3600,
+        "max_size_mb": 100
+    }
+}

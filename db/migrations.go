@@ -3,7 +3,7 @@ package db
 import (
 	"log"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 
 	"gorm.io/gorm"
 )

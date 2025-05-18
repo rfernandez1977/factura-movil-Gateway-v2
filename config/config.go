@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fmgo/models"
+	"FMgo/models"
 	"github.com/supabase-community/postgrest-go"
 )
 

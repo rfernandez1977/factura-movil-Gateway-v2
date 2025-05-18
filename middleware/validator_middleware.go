@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/services"
+	"FMgo/models"
+	"FMgo/services"
 )
 
 // ValidatorMiddleware proporciona middleware para validación automática de documentos
