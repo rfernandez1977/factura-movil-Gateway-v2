@@ -3,7 +3,7 @@ package unit
 import (
 	"testing"
 
-	"github.com/fmgo/pkg/sii"
+	"FMgo/pkg/sii"
 )
 
 func TestSIIAuthentication(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/services"
-	"github.com/fmgo/utils"
+	"FMgo/models"
+	"FMgo/services"
+	"FMgo/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

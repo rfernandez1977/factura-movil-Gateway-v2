@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fmgo/pkg/dte"
+	"FMgo/pkg/dte"
 )
 
 func TestDTEValidation(t *testing.T) {

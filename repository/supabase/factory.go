@@ -1,7 +1,7 @@
 package supabase
 
 import (
-	"github.com/fmgo/supabase"
+	"FMgo/supabase"
 )
 
 // RepositoryFactory es una fábrica para crear repositorios de Supabase

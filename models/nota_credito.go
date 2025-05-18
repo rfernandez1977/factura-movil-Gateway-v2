@@ -26,6 +26,8 @@ type NotaCredito struct {
 	MontoNeto               float64              `json:"monto_neto" bson:"monto_neto"`
 	MontoExento             float64              `json:"monto_exento" bson:"monto_exento"`
 	MontoIVA                float64              `json:"monto_iva" bson:"monto_iva"`
+	MontoTotal              float64              `json:"monto_total" bson:"monto_total"`
+	ImpuestosAdicionales    []ImpuestoAdicional  `json:"impuestos_adicionales,omitempty" bson:"impuestos_adicionales,omitempty"`
 	Items                   []Item               `json:"items" bson:"items"`
 }
 

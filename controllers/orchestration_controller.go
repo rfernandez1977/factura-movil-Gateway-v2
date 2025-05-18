@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/fmgo/models"
-	"github.com/fmgo/services"
+	"FMgo/models"
+	"FMgo/services"
 
 	"github.com/gin-gonic/gin"
 )

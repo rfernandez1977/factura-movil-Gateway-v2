@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/services"
+	"FMgo/config"
+	"FMgo/services"
 )
 
 func main() {

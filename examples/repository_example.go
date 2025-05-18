@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/fmgo/repository"
+	"FMgo/repository"
 )
 
 func main() {

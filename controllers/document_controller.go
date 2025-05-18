@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/fmgo/domain"
-	"github.com/fmgo/models"
+	"FMgo/domain"
+	"FMgo/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

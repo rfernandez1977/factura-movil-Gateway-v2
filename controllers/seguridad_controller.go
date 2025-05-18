@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/services"
+	"FMgo/services"
 )
 
 // SeguridadController maneja las peticiones relacionadas con la seguridad

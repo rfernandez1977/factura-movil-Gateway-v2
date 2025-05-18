@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/services"
+	"FMgo/services"
 )
 
 // ReportesController maneja las peticiones relacionadas con reportes

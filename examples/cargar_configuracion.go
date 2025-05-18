@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/models"
-	"github.com/fmgo/services"
+	"FMgo/config"
+	"FMgo/models"
+	"FMgo/services"
 )
 
 func cargarConfiguracion() error {

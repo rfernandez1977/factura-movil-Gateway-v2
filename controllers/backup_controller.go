@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fmgo/services"
-	"github.com/fmgo/utils"
+	"FMgo/services"
+	"FMgo/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

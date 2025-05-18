@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fmgo/config"
+	"FMgo/config"
 )
 
 func main() {

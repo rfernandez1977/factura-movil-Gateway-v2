@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fmgo/supabase"
+	"FMgo/supabase"
 )
 
 func main() {

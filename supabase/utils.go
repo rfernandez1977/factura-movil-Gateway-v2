@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/fmgo/config"
+	"FMgo/config"
 )
 
 // GetClientFromConfig crea un cliente de Supabase a partir del archivo de configuración

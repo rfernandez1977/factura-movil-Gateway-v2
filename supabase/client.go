@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/fmgo/config"
+	"FMgo/config"
 	supa "github.com/supabase-community/supabase-go"
 )
 

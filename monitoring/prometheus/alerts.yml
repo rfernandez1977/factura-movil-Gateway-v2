@@ -1,0 +1,29 @@
+groups:
+- name: fmgo_alerts
+  rules:
+  - alert: FoliosBajos
+    expr: fmgo_folios_disponibles < 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Folios bajos para {{ $labels.tipo_documento }}"
+      description: "Quedan menos de 100 folios disponibles"
+
+  - alert: ErroresExcesivos
+    expr: rate(fmgo_errores_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Tasa de errores alta"
+      description: "La tasa de errores supera el 10% en los últimos 5 minutos"
+
+  - alert: CertificadoProximoVencer
+    expr: fmgo_certificados_validos == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Certificado próximo a vencer"
+      description: "El certificado {{ $labels.certificado }} está próximo a vencer"

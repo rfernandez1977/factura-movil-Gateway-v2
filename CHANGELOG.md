@@ -76,6 +76,39 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - Todas las dependencias son compatibles con Go 1.23
 - Se utiliza el toolchain go1.24.2
 
+### Integración SII - Mejoras y Consolidación
+- Consolidación de implementaciones del cliente SII
+  - Eliminación de archivos duplicados (cert_manager.go, documento.go)
+  - Unificación del cliente SII en core/sii/client
+  - Consolidación de modelos en core/sii/models
+
+- Mejoras en el Sistema de Logging
+  - Implementación de logger unificado en utils/logger
+  - Mejora en el manejo de niveles de log
+  - Mejor trazabilidad de operaciones
+
+- Mejoras en la Configuración
+  - Implementación de validaciones robustas
+  - Mejor manejo de ambientes (certificación/producción)
+  - Verificación de archivos y rutas
+
+- Mejoras en el Cliente HTTP
+  - Eliminación de campos redundantes
+  - Mejor manejo de errores y validaciones
+  - Implementación de sistema de reintentos
+  - Mejora en el manejo de certificados
+
+- Mejoras en los Modelos
+  - Implementación de validaciones de tipos
+  - Mejora en la documentación
+  - Implementación de métodos de validación
+  - Optimización de tags XML y JSON
+
+- Documentación
+  - Creación de documentación detallada de la integración
+  - Actualización de ejemplos y guías
+  - Documentación de configuración y ambientes
+
 ## [0.1.0] - 2024-03-XX
 
 ### Agregado

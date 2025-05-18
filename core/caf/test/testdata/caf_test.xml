@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<AUTORIZACION version="1.0">
+  <CAF>
+    <DA>
+      <RE>76329692-K</RE>
+      <RS>EMPRESA DE PRUEBA SPA</RS>
+      <TD>33</TD>
+      <RNG>
+        <D>1</D>
+        <H>100</H>
+      </RNG>
+      <FA>2024-03-22</FA>
+      <RSAPK>
+        <M>AKWvV5Y78dJqSM5Uy1ClzEYz2yHWqQqQH0YxG1/PH8XB4YqNRi0F2jZ+jxG4</M>
+        <E>Aw==</E>
+      </RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">MCwCFQCjqBxDJ+JR3oU9aF+VQ5vhWnsTYwIVAJO9F1Yk6zc7F9MCd3MX4+9jtA==</FRMA>
+  </CAF>
+</AUTORIZACION> 

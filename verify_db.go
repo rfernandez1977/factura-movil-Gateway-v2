@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/fmgo/config"
-	"github.com/fmgo/supabase"
+	"FMgo/config"
+	"FMgo/supabase"
 	"github.com/joho/godotenv"
 )
 

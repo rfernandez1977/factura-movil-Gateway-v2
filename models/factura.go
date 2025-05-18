@@ -3,35 +3,36 @@ package models
 import (
 	"time"
 
-	"github.com/fmgo/domain"
+	"FMgo/domain"
 )
 
 // Factura representa una factura electrónica
 type Factura struct {
 	domain.DocumentoTributario
-	ID                  string          `json:"id" bson:"_id"`
-	TipoDocumento       TipoDTE         `json:"tipo_documento" bson:"tipo_documento"`
-	Folio               int64           `json:"folio" bson:"folio"`
-	FechaEmision        time.Time       `json:"fecha_emision" bson:"fecha_emision"`
-	FechaVencimiento    time.Time       `json:"fecha_vencimiento" bson:"fecha_vencimiento"`
-	RutEmisor           string          `json:"rut_emisor" bson:"rut_emisor"`
-	RazonSocialEmisor   string          `json:"razon_social_emisor" bson:"razon_social_emisor"`
-	RutReceptor         string          `json:"rut_receptor" bson:"rut_receptor"`
-	RazonSocialReceptor string          `json:"razon_social_receptor" bson:"razon_social_receptor"`
-	MontoTotal          float64         `json:"monto_total" bson:"monto_total"`
-	MontoNeto           float64         `json:"monto_neto" bson:"monto_neto"`
-	MontoExento         float64         `json:"monto_exento" bson:"monto_exento"`
-	MontoIVA            float64         `json:"monto_iva" bson:"monto_iva"`
-	FormaPago           string          `json:"forma_pago" bson:"forma_pago"`
-	Vencimiento         int             `json:"vencimiento" bson:"vencimiento"`
-	Estado              EstadoDocumento `json:"estado" bson:"estado"`
-	Items               []domain.Item   `json:"items" bson:"items"`
-	FechaCreacion       time.Time       `json:"fecha_creacion" bson:"fecha_creacion"`
-	FechaActualizacion  time.Time       `json:"fecha_actualizacion" bson:"fecha_actualizacion"`
-	CAF                 *domain.CAF     `json:"caf,omitempty" bson:"caf,omitempty"`
-	TimbreElectronico   string          `json:"timbre_electronico,omitempty" bson:"timbre_electronico,omitempty"`
-	FirmaElectronica    string          `json:"firma_electronica,omitempty" bson:"firma_electronica,omitempty"`
-	Referencias         []Referencia    `json:"referencias,omitempty" bson:"referencias,omitempty"`
+	ID                   string              `json:"id" bson:"_id"`
+	TipoDocumento        TipoDTE             `json:"tipo_documento" bson:"tipo_documento"`
+	Folio                int64               `json:"folio" bson:"folio"`
+	FechaEmision         time.Time           `json:"fecha_emision" bson:"fecha_emision"`
+	FechaVencimiento     time.Time           `json:"fecha_vencimiento" bson:"fecha_vencimiento"`
+	RutEmisor            string              `json:"rut_emisor" bson:"rut_emisor"`
+	RazonSocialEmisor    string              `json:"razon_social_emisor" bson:"razon_social_emisor"`
+	RutReceptor          string              `json:"rut_receptor" bson:"rut_receptor"`
+	RazonSocialReceptor  string              `json:"razon_social_receptor" bson:"razon_social_receptor"`
+	MontoTotal           float64             `json:"monto_total" bson:"monto_total"`
+	MontoNeto            float64             `json:"monto_neto" bson:"monto_neto"`
+	MontoExento          float64             `json:"monto_exento" bson:"monto_exento"`
+	MontoIVA             float64             `json:"monto_iva" bson:"monto_iva"`
+	FormaPago            string              `json:"forma_pago" bson:"forma_pago"`
+	Vencimiento          int                 `json:"vencimiento" bson:"vencimiento"`
+	Estado               EstadoDocumento     `json:"estado" bson:"estado"`
+	Items                []domain.Item       `json:"items" bson:"items"`
+	FechaCreacion        time.Time           `json:"fecha_creacion" bson:"fecha_creacion"`
+	FechaActualizacion   time.Time           `json:"fecha_actualizacion" bson:"fecha_actualizacion"`
+	CAF                  *domain.CAF         `json:"caf,omitempty" bson:"caf,omitempty"`
+	TimbreElectronico    string              `json:"timbre_electronico,omitempty" bson:"timbre_electronico,omitempty"`
+	FirmaElectronica     string              `json:"firma_electronica,omitempty" bson:"firma_electronica,omitempty"`
+	Referencias          []Referencia        `json:"referencias,omitempty" bson:"referencias,omitempty"`
+	ImpuestosAdicionales []ImpuestoAdicional `json:"impuestos_adicionales,omitempty"`
 }
 
 // FacturaRequest representa la solicitud para crear una factura

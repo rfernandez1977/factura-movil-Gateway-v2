@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/models"
-	"github.com/fmgo/services"
-	"github.com/fmgo/utils"
+	"FMgo/models"
+	"FMgo/services"
+	"FMgo/utils"
 	"go.uber.org/zap"
 )
 

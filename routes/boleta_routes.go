@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/fmgo/controllers"
-	"github.com/fmgo/middleware"
-	"github.com/fmgo/repository"
-	"github.com/fmgo/services"
+	"FMgo/controllers"
+	"FMgo/middleware"
+	"FMgo/repository"
+	"FMgo/services"
 )
 
 // SetupBoletaRoutes configura las rutas para las boletas electrónicas

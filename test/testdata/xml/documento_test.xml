@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DTE version="1.0">
+    <Documento>
+        <Encabezado>
+            <IdDoc>
+                <TipoDTE>33</TipoDTE>
+                <Folio>1</Folio>
+                <FchEmis>2024-03-14</FchEmis>
+            </IdDoc>
+            <Emisor>
+                <RUTEmisor>76555555-5</RUTEmisor>
+                <RznSoc>Empresa de Prueba SPA</RznSoc>
+                <GiroEmis>Desarrollo de Software</GiroEmis>
+            </Emisor>
+            <Receptor>
+                <RUTRecep>66666666-6</RUTRecep>
+                <RznSocRecep>Cliente de Prueba LTDA</RznSocRecep>
+                <GiroRecep>Comercio</GiroRecep>
+            </Receptor>
+        </Encabezado>
+        <Detalle>
+            <NroLinDet>1</NroLinDet>
+            <NmbItem>Servicio de Desarrollo</NmbItem>
+            <QtyItem>1</QtyItem>
+            <PrcItem>100000</PrcItem>
+            <MontoItem>100000</MontoItem>
+        </Detalle>
+        <TED>
+            <DD>
+                <RE>76555555-5</RE>
+                <TD>33</TD>
+                <F>1</F>
+                <FE>2024-03-14</FE>
+                <RR>66666666-6</RR>
+                <RSR>Cliente de Prueba LTDA</RSR>
+                <MNT>100000</MNT>
+                <IT1>Servicio de Desarrollo</IT1>
+                <CAF version="1.0">
+                    <DA>
+                        <RE>76555555-5</RE>
+                        <RS>Empresa de Prueba SPA</RS>
+                        <TD>33</TD>
+                        <RNG><D>1</D><H>100</H></RNG>
+                        <FA>2024-03-14</FA>
+                    </DA>
+                </CAF>
+                <TSTED>2024-03-14T12:00:00</TSTED>
+            </DD>
+        </TED>
+    </Documento>
+</DTE> 

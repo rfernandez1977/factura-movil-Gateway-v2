@@ -5,7 +5,7 @@ import (
 	"log"
 
 	_ "github.com/lib/pq" // Driver PostgreSQL
-	"github.com/fmgo/models"
+	"FMgo/models"
 )
 
 // DBExecutor define la interfaz para ejecutar operaciones en la base de datos

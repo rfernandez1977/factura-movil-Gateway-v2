@@ -1,0 +1,50 @@
+{
+    "metrics": {
+        "counter": [
+            {
+                "name": "fmgo_documentos_procesados_total",
+                "help": "Total de documentos procesados por tipo",
+                "labels": ["tipo_documento"]
+            },
+            {
+                "name": "fmgo_errores_total",
+                "help": "Total de errores por tipo",
+                "labels": ["tipo_error"]
+            }
+        ],
+        "gauge": [
+            {
+                "name": "fmgo_folios_disponibles",
+                "help": "Cantidad de folios disponibles por tipo de documento",
+                "labels": ["tipo_documento"]
+            },
+            {
+                "name": "fmgo_certificados_validos",
+                "help": "Estado de validez de los certificados",
+                "labels": ["certificado"]
+            }
+        ],
+        "histogram": [
+            {
+                "name": "fmgo_tiempo_proceso_documento",
+                "help": "Tiempo de procesamiento de documentos",
+                "labels": ["tipo_documento"],
+                "buckets": [0.1, 0.5, 1.0, 2.0, 5.0]
+            }
+        ]
+    },
+    "alerting": {
+        "rules": [
+            {
+                "name": "FoliosBajos",
+                "condition": "fmgo_folios_disponibles < 100",
+                "severity": "warning"
+            },
+            {
+                "name": "CertificadoProximoVencer",
+                "condition": "fmgo_certificados_validos == 0",
+                "severity": "critical"
+            }
+        ]
+    }
+}
